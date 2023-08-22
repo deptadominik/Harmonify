@@ -1,0 +1,28 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Harmonify.Server", "Server\Harmonify.Server.csproj", "{439E70C1-6138-4F36-9D15-744A6E84810F}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Harmonify.Client", "Client\Harmonify.Client.csproj", "{71E1EB30-8024-4377-877A-A1053541E9D8}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Harmonify.Shared", "Shared\Harmonify.Shared.csproj", "{916DFCAE-A547-41F6-B4ED-8115856D0F4C}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{439E70C1-6138-4F36-9D15-744A6E84810F}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{439E70C1-6138-4F36-9D15-744A6E84810F}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{439E70C1-6138-4F36-9D15-744A6E84810F}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{439E70C1-6138-4F36-9D15-744A6E84810F}.Release|Any CPU.Build.0 = Release|Any CPU
+		{71E1EB30-8024-4377-877A-A1053541E9D8}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{71E1EB30-8024-4377-877A-A1053541E9D8}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{71E1EB30-8024-4377-877A-A1053541E9D8}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{71E1EB30-8024-4377-877A-A1053541E9D8}.Release|Any CPU.Build.0 = Release|Any CPU
+		{916DFCAE-A547-41F6-B4ED-8115856D0F4C}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{916DFCAE-A547-41F6-B4ED-8115856D0F4C}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{916DFCAE-A547-41F6-B4ED-8115856D0F4C}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{916DFCAE-A547-41F6-B4ED-8115856D0F4C}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+EndGlobal

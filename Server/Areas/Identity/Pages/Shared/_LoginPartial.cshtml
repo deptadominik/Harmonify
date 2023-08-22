@@ -1,0 +1,42 @@
+﻿@using Microsoft.AspNetCore.Identity
+@using Harmonify.Server.Models
+@inject SignInManager<ApplicationUser> SignInManager
+@inject UserManager<ApplicationUser> UserManager
+@addTagHelper *, Microsoft.AspNetCore.Mvc.TagHelpers
+
+@{
+    var returnUrl = "/";
+    if (Context.Request.Query.TryGetValue("returnUrl", out var existingUrl))
+    {
+        returnUrl = existingUrl;
+    }
+}
+
+<ul class="navbar-nav">
+    @if (SignInManager.IsSignedIn(User))
+    {
+        <div class="login-display-mobile ui buttons">
+            <button onclick="location.href='/authentication/profile'" class="tiny harmonify-background-color ui button">
+                Hello, @User.Identity?.Name!
+            </button>
+            <form id="logoutForm" asp-area="Identity" asp-page="/Account/Logout" asp-route-returnUrl="@Url.Page("/Index", new { area = "" })">
+                <button class="tiny right-btn ui button grey">
+                    Log out
+                </button>
+            </form>
+        </div>
+    }
+    else
+    {
+        <div class="ui medium buttons login-display-mobile">
+            <button onclick="location.href='/authentication/register'" class="tiny ui button harmonify-background-color">
+                Register
+            </button>
+            <div class="or"></div>
+            <button onclick="location.href='/authentication/login'" class="tiny right-btn ui button grey">
+                Log in
+            </button>
+            <i class="sign in icon" style="visibility: visible;"></i>
+        </div>
+    }
+</ul>

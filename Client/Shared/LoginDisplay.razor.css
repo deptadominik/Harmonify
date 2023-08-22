@@ -1,0 +1,6 @@
+@media (max-width: 639px){
+    .login-display-mobile {
+        margin-right: auto !important;
+        margin-left: auto !important;
+    }
+}

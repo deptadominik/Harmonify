@@ -1,0 +1,46 @@
+@media screen and (min-width: 800px) {
+    .ui.grid.login-grid-mobile {
+        margin: -1rem 15rem !important;
+    }
+}
+
+@media (max-width: 639px) {
+    .login-grid-mobile {
+        margin: -1rem 2rem !important;
+    }
+}
+
+@media screen and (min-width: 576px) {
+    .img-logo {
+        max-width: 20%;
+    }
+}
+
+@media (max-width: 575px) {
+    .img-logo {
+        max-width: 40%;
+    }
+}
+
+.harmonify-background-color {
+    background-color: #1C6444 !important;
+    color: white !important;
+}
+
+.harmonify-color {
+    color: #1C6444 !important;
+}
+
+@media (max-width: 639px){
+    .login-display-mobile {
+        margin-right: auto !important;
+        margin-left: auto !important;
+    }
+}
+
+.right-btn {
+    border-top-left-radius: 0 !important;
+    border-bottom-left-radius: 0 !important;
+    border-top-right-radius: 0.28571429rem !important;
+    border-bottom-right-radius: 0.28571429rem !important;
+}

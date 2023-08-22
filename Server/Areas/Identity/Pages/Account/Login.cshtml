@@ -1,0 +1,83 @@
+﻿@page
+@model LoginModel
+
+@{
+    ViewData["Title"] = "Log in";
+}
+
+<div class="ui middle aligned center aligned grid login-grid-mobile">
+    <div class="column">
+        <h2 class="ui harmonify-color image header">
+            <img src="/images/logo_without_name.png" class="image" alt="Logo"/>
+            <div class="content">
+                Log-in to your account
+            </div>
+        </h2>
+        <form id="account" method="post" class="ui large form">
+            <div class="ui stacked segment">
+                <div asp-validation-summary="ModelOnly" class="text-danger" role="alert"></div>
+                <div class="field">
+                    <div class="ui left icon input">
+                        <i class="user icon"></i>
+                        <input asp-for="Input.Email" class="form-control" type="email" autocomplete="username" aria-required="true" placeholder="E-mail address">
+                        <span asp-validation-for="Input.Email" class="text-danger"></span>
+                    </div>
+                </div>
+                <div class="field">
+                    <div class="ui left icon input">
+                        <i class="lock icon"></i>
+                        <input asp-for="Input.Password" class="form-control" type="password" autocomplete="current-password" aria-required="true" placeholder="Password">
+                        <span asp-validation-for="Input.Password" class="text-danger"></span>
+                    </div>
+                </div>
+                <div class="checkbox mb-3">
+                    <label asp-for="Input.RememberMe" class="form-label">
+                        <input class="form-check-input" asp-for="Input.RememberMe"/>
+                        @Html.DisplayNameFor(m => m.Input.RememberMe)
+                    </label>
+                </div>
+                <button id="login-submit" type="submit" class="ui fluid large harmonify-background-color submit button">Login</button>
+                <div class="col-md-offset-2">
+                    <section>
+                        <hr/>
+                        @{
+                            if ((Model.ExternalLogins?.Count ?? 0) == 0)
+                            {
+                                <div>
+                                    <p>
+                                        There are no external authentication services configured. See this
+                                        <a href="https://go.microsoft.com/fwlink/?LinkID=532715">
+                                            article
+                                            about setting up this ASP.NET application to support logging in via external services
+                                        </a>.
+                                    </p>
+                                </div>
+                            }
+                            else
+                            {
+                                <form id="external-account" asp-page="./ExternalLogin" asp-route-returnUrl="@Model.ReturnUrl" method="post" class="form-horizontal">
+                                    <div>
+                                        <p>
+                                            @foreach (var provider in Model.ExternalLogins!)
+                                            {
+                                                <button type="submit" class="btn btn-primary" name="provider" value="@provider.Name" title="Log in using your @provider.DisplayName account">@provider.DisplayName</button>
+                                            }
+                                        </p>
+                                    </div>
+                                </form>
+                            }
+                        }
+                    </section>
+                </div>
+            </div>
+            <div class="ui error message"></div>
+        </form>
+        <div class="ui message">
+            New to us? <a asp-page="./Register" asp-route-returnUrl="@Model.ReturnUrl">Sign in</a>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial"/>
+}
