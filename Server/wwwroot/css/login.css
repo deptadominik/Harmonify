@@ -1,12 +1,20 @@
 @media screen and (min-width: 800px) {
     .ui.grid.login-grid-mobile {
         margin: -1rem 15rem !important;
+        margin-top: 2% !important;
     }
 }
 
 @media (max-width: 639px) {
     .login-grid-mobile {
         margin: -1rem 2rem !important;
+        margin-top: 2% !important;
+    }
+    .harmonify-menu {
+        border-right: unset !important;
+        width: 0;
+        display: inline-flex !important;
+        flex-direction: row !important;
     }
 }
 
@@ -43,4 +51,13 @@
     border-bottom-left-radius: 0 !important;
     border-top-right-radius: 0.28571429rem !important;
     border-bottom-right-radius: 0.28571429rem !important;
+}
+
+.nav-color {
+    background-image: linear-gradient(86deg, rgb(13 69 44) 30%, #758d4d 90%) !important;
+}
+
+.navbar-dark .navbar-toggler {
+    color: rgba(255, 255, 255, 1) !important;
+    border-color: rgba(255, 255, 255, 1) !important;
 }

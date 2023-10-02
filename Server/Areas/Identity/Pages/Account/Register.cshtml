@@ -7,7 +7,6 @@
 <div class="ui middle aligned center aligned grid login-grid-mobile">
     <div class="column">
         <h2 class="ui harmonify-color image header">
-            <img src="/images/logo_without_name.png" class="image" alt="Logo"/>
             <div class="content">
                 Create a new account
             </div>
@@ -15,6 +14,20 @@
         <form id="account" method="post" class="ui large form">
             <div class="ui stacked segment">
                 <div asp-validation-summary="ModelOnly" class="text-danger" role="alert"></div>
+                <div class="field">
+                    <div class="ui left icon input">
+                        <i class="user icon"></i>
+                        <input asp-for="Input.FirstName" class="form-control" autocomplete="first-name" aria-required="true" placeholder="First name">
+                    </div>
+                    <span asp-validation-for="Input.FirstName" class="text-danger"></span>
+                </div>
+                <div class="field">
+                    <div class="ui left icon input">
+                        <i class="user icon"></i>
+                        <input asp-for="Input.LastName" class="form-control" autocomplete="last-name" aria-required="true" placeholder="Last name">
+                    </div>
+                    <span asp-validation-for="Input.LastName" class="text-danger"></span>
+                </div>
                 <div class="field">
                     <div class="ui left icon input">
                         <i class="user icon"></i>
