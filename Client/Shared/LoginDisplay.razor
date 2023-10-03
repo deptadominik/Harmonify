@@ -1,12 +1,16 @@
 ﻿@using Microsoft.AspNetCore.Components.Authorization
 @using Microsoft.AspNetCore.Components.WebAssembly.Authentication
+@using Harmonify.Client.Services
+@using Harmonify.Shared.Models
+@inject AuthenticationStateProvider AuthenticationStateProvider
 @inject NavigationManager Navigation
 
 <AuthorizeView>
     <Authorized>
         <div class="login-display-mobile">
             <button onclick="location.href='authentication/profile'" class="circular harmonify-background-color ui button">
-                Hello, @context.User.Identity?.Name!
+                Hello,
+                @if (loaded) @User?.FirstName!
             </button>
             <button class="circular ui button grey" @onclick="BeginLogOut">
                 Log out
@@ -28,6 +32,23 @@
 </AuthorizeView>
 
 @code{
+    private bool loaded;
+    private string userName = null;
+
+    private ApplicationUser? User { get; set; }
+
+    [Inject]
+    public IApplicationUserService UserService { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        loaded = false;
+        var authState = await AuthenticationStateProvider
+            .GetAuthenticationStateAsync();
+        if (authState.User.Identity.Name != null) User = await UserService
+            .GetUserByEmail(authState.User.Identity?.Name);
+        loaded = true;
+    }
 
     private void BeginLogOut()
     {
