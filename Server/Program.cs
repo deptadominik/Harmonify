@@ -23,6 +23,7 @@ builder.Services.AddCors(policy =>
 
 builder.Services.AddSwaggerGen();
 builder.Services.AddScoped<ApplicationUserRepository>();
+builder.Services.AddScoped<AvatarImageRepository>();
 
 builder.Services.AddDefaultIdentity<ApplicationUser>(options => options.SignIn.RequireConfirmedAccount = true)
     .AddEntityFrameworkStores<ApplicationDbContext>();

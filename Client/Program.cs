@@ -16,6 +16,7 @@ builder.Services.AddHttpClient("Harmonify.ServerAPI",
 builder.Services.AddScoped(sp => sp.GetRequiredService<IHttpClientFactory>().CreateClient("Harmonify.ServerAPI"));
 
 builder.Services.AddScoped<IApplicationUserService, ApplicationUserService>();
+builder.Services.AddScoped<IAvatarImageService, AvatarImageService>();
 
 builder.Services.AddApiAuthorization();
 

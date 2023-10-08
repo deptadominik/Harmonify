@@ -17,5 +17,4 @@ public class ApplicationUserService : IApplicationUserService
         return await httpClient.GetFromJsonAsync<ApplicationUser>(
             $"ApplicationUser?email={email}");
     }
-
 }

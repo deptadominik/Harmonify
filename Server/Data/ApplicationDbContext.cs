@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.ApiAuthorization.IdentityServer;
+﻿using System.ComponentModel.DataAnnotations.Schema;
+using Microsoft.AspNetCore.ApiAuthorization.IdentityServer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using Duende.IdentityServer.EntityFramework.Options;
@@ -21,6 +22,10 @@ public class ApplicationDbContext : ApiAuthorizationDbContext<ApplicationUser>
         base.OnModelCreating(builder);
         
         builder.Entity<ApplicationUser>().ToTable("User");
+        
+        builder.Entity<AvatarImage>()
+            .Property(p => p.Id)
+            .ValueGeneratedOnAdd();
         
         builder.Entity<ApplicationUser>()
             .HasOne(a => a.Avatar)

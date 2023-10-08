@@ -39,6 +39,10 @@
     color: #1C6444 !important;
 }
 
+.margin-btm-harmonify {
+    margin-bottom: 5% !important;
+}
+
 @media (max-width: 639px){
     .login-display-mobile {
         margin-right: auto !important;

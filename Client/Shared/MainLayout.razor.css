@@ -56,7 +56,7 @@ main {
     }
 
     .sidebar {
-        background-image: linear-gradient(180deg, rgb(13 69 44) 20%, #758d4d 90%);
+        background-image: linear-gradient(180deg, rgb(13 69 44) 20%, #758d4d 90%) !important;
         width: 250px;
         height: 100vh;
         position: sticky;

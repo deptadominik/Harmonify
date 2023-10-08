@@ -1,0 +1,234 @@
+@page "/Identity/Account/Manage/AvatarCrop"
+@using Harmonify.Shared.Models
+@using Harmonify.Client.Services
+@inject IJSRuntime JSRuntime;
+@inject AuthenticationStateProvider AuthenticationStateProvider
+
+<PageTitle>Avatar crop</PageTitle>
+
+<AuthorizeView Context="Authorize">
+    <Authorized>
+        <h3>Avatar crop</h3>
+        <div class="ui middle aligned center aligned">
+            <div class="col-md-6">
+                <form class="form-floating mb-3" method="post" enctype="multipart/form-data">
+                    <div class="ui file action @(Avatar == null ? "" : "disabled") input">
+                        <InputFile id="action-file-input" class="@(Avatar == null ? "" : "disabled")" OnChange="OnInputFileChange"></InputFile>
+                        <label for="action-file-input" class="margin-btm-harmonify @(Avatar == null ? "" : "disabled") ui harmonify-background-color button">
+                            <i class="camera icon"></i>
+                            Choose avatar...
+                        </label>
+                    </div>
+                    @* <div class="ui two buttons"> *@
+                    @*     <button type="submit" class="@(Avatar == null ? "" : "disabled") positive ui fluid button">Upload avatar</button> *@
+                    @* </div> *@
+                </form>
+                @if (Avatar is not null)
+                {
+                    <div>
+                        <p>
+                            If you want to upload a new avatar, you need to delete your current one.
+                        </p>
+                        <button @onclick="DeleteAvatar" type="submit" class="mb-3 negative ui fluid button">Delete avatar</button>
+                    </div>
+                }
+                @if (file != null)
+                {
+                    <div class="ui fullscreen modal front transition visible active" style="height: unset">
+                        <div class="center aligned header">
+                            Crop your image
+                            <button @onclick="() => file = null" class="ui right floated circular google plus icon button">
+                                <i class="times circle icon"></i>
+                            </button>
+                        </div>
+                        <div class="center aligned content">
+                            <section class="" style="overflow-x: hidden">
+                                @if (show)
+                                {
+                                    <Cropper MaxCropedHeight="500" CropperHeight="400" MaxCropedWidth="500" @ref="cropper" AspectRatio="proportion == 0 ? 1 : proportion"
+                                             RequireAspectRatio="true" ImageFile="file" @bind-Ratio="ratio"
+                                             AnimeGifEnable="true"
+                                             OffsetX="offsetx"
+                                             OffsetY="offsety"
+                                             InitCropWidth="initw"
+                                             InitCropHeight="inith"
+                                             PureCSharpProcessing="false"
+                                             IsCropLocked="false"
+                                             Quality="100"
+                                             OnSizeChanged="t =>{ width = Math.Round(t.Item1); height = Math.Round(t.Item2); }">
+                                    </Cropper>
+                                }
+                            </section>
+                            @if (cropper != null)
+                            {
+                                <div>
+                                    <h4 style="margin-top: 1.5rem;">
+                                        width: @width px |
+                                        height: @height px
+                                    </h4>
+                                </div>
+                            }
+                        </div>
+                        <div class="center aligned actions">
+                            <div>
+                                <div class="ui positive button" @onclick="DoneCrop">Upload</div>
+                                <br/>
+                            </div>
+                        </div>
+                    </div>
+                }
+                else
+                {
+                    offsetx = 0;
+                    offsety = 0;
+                    initw = 50;
+                    inith = 50;
+                }
+            </div>
+        </div>
+
+        <div class="col-md-6">
+            @if (displayCropResult)
+            {
+                <h3>Your cropped avatar:</h3>
+            }
+
+            @if (!displayCropResult && Avatar is not null)
+            {
+                <h3>Your avatar:</h3>
+            }
+            <img id="my-img"/>
+        </div>
+    </Authorized>
+    <NotAuthorized>
+            <div class="my-container">
+                <div class="my-sub-container p-2 ">
+                    <center>
+                        <h3>Log in, to upload your avatar.</h3>
+                    </center>
+                </div>
+            </div>
+        </NotAuthorized>
+</AuthorizeView>
+
+
+@code {
+    List<string> allowedTypes = new() { "image/jpeg", "image/jpg", "image/png"};
+    Cropper cropper;
+    IBrowserFile? file;
+    string disabled = "disabled";
+    double width;
+    double height;
+    string webimgurl = "";
+    bool purecs = false;
+    bool show = true;
+    bool displayCropResult = false;
+    string enableProportion = "false";
+    double proportion = 1d;
+    double ratio = 8;
+    int offsetx, offsety;
+    int initw = 50;
+    int inith = 50;
+    int quality = 100;
+    CropInfo state;
+
+    private ApplicationUser? User { get; set; }
+    private AvatarImage? Avatar { get; set; }
+
+    [Inject]
+    public IApplicationUserService UserService { get; set; }
+
+    [Inject]
+    public IAvatarImageService AvatarService { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        var authState = await AuthenticationStateProvider
+            .GetAuthenticationStateAsync();
+        if (authState.User.Identity.Name != null)
+        {
+            User = await UserService
+                .GetUserByEmail(authState.User.Identity?.Name);
+            
+            Avatar = await AvatarService.GetAvatarAsync(User.Id);
+            
+            if (Avatar is not null)
+                await JSRuntime.SetImageAsync(Avatar.Content, "my-img", "");
+        }
+    }
+
+    async Task OnInputFileChange(InputFileChangeEventArgs args)
+    {
+        if (args.File.Size > 2097152)
+        {
+            await JSRuntime.InvokeVoidAsync(
+                "alert",
+                "The size of the photo is too large - the allowed size is 2 MB");
+
+        } else if (allowedTypes.Contains(args.File.ContentType) == false)
+            await JSRuntime.InvokeVoidAsync(
+                "alert",
+                "The type of the file is not supported - supported types are: jpg, jpeg, png.");
+        else
+            file = args.File;
+    }
+
+    async Task DoneCrop()
+    {
+        if (width > 800 || height > 800)
+            await JSRuntime.InvokeVoidAsync(
+                "alert",
+                "The resolution of image is too large - maximum supported resolution is 800x800 px");
+        else
+        {
+            var args = await cropper.GetCropedResult();
+            var fileName = file.Name;
+            file = null;
+            base.StateHasChanged();
+            await Task.Delay(10); // a hack, otherwise prompt won't show
+            var bs = await args.GetDataAsync();
+            
+            var body = new
+            {
+                FileName = fileName,
+                Content = bs,
+                UserId = User.Id,
+            };
+
+            var avatarId = await AvatarService.AddAvatarAsync(body);
+
+            if (avatarId is null)
+            {
+                await JSRuntime.InvokeVoidAsync(
+                    "alert",
+                    "Something went wrong, avatar not uploaded.");
+
+                return;
+            }
+
+            displayCropResult = true;
+
+            Avatar = await AvatarService.GetAvatarAsync(User.Id);
+
+            await JSRuntime.SetImageAsync(bs, "my-img", args.Format.DefaultMimeType);
+        }
+    }
+
+    async Task DeleteAvatar()
+    {
+        var isDeleted = await AvatarService.DeleteAvatarAsync(Avatar.Id);
+
+        if (!isDeleted)
+        {
+            await JSRuntime.InvokeVoidAsync(
+                "alert",
+                "Something went wrong, avatar not deleted.");
+        }
+
+        displayCropResult = false;
+
+        await JSRuntime.SetImageAsync(new byte[] { }, "my-img", "image/jpeg");
+
+        Avatar = null;
+    }
+}
