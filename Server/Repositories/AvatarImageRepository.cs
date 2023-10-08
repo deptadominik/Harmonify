@@ -13,20 +13,20 @@ public class AvatarImageRepository
         ctx = context;
     }
 
-    public async Task<AvatarImage?> GetAvatarImage(string userId)
+    public async Task<AvatarImage?> GetAvatarImageAsync(string userId)
     {
         return await ctx.Avatar
             .FirstOrDefaultAsync(u => u.UserId == userId);
     }
     
-    public async Task<bool> AddAvatarImage(AvatarImage avatar)
+    public async Task<bool> AddAvatarImageAsync(AvatarImage avatar)
     {
         await ctx.Avatar.AddAsync(avatar);
         
         return await ctx.SaveChangesAsync() > 0;
     }
     
-    public async Task<bool> DeleteAvatarImage(Guid id)
+    public async Task<bool> DeleteAvatarImageAsync(Guid id)
     {
         var result = await ctx.Avatar
             .FirstOrDefaultAsync(e => e.Id == id);

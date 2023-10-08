@@ -1,6 +1,7 @@
-using Harmonify.Server.Repositories;
-using Harmonify.Shared.DTO;
+using Harmonify.Server.Commands.AvatarImage;
+using Harmonify.Server.Queries;
 using Harmonify.Shared.Models;
+using MediatR;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Harmonify.Server.Controllers;
@@ -9,56 +10,39 @@ namespace Harmonify.Server.Controllers;
 [Route("[controller]")]
 public class AvatarImageController : ControllerBase
 {
-    private readonly ILogger<AvatarImage> _logger;
+    private readonly IMediator _mediator;
 
-    public AvatarImageController(ILogger<AvatarImage> logger)
+    public AvatarImageController(IMediator mediator)
     {
-        _logger = logger;
+        _mediator = mediator;
     }
 
     [HttpGet]
-    public async Task<ActionResult<AvatarImage?>> Get(
-        string userId,
-        [FromServices] AvatarImageRepository ar)
+    public async Task<ActionResult<AvatarImage?>> Get(string userId)
     {
-        var avatar = await ar.GetAvatarImage(userId);
-
-        if (avatar == null)
+        var entity = await _mediator
+            .Send(new GetAvatarImageQuery { UserId = userId });
+        
+        if (entity == null)
             return NotFound("Avatar not found.");
         
-        else return Ok(avatar);
+        return Ok(entity);
     }
     
     [HttpPost]
     [ProducesResponseType(StatusCodes.Status201Created)]
-    [ProducesResponseType(StatusCodes.Status400BadRequest)]
-    public async Task<ActionResult> Create(
-        [FromBody] AvatarImageDTO body,
-        [FromServices] AvatarImageRepository ar)
+    public async Task<ActionResult> Create(CreateAvatarImageCommand command)
     {
-        var id = Guid.NewGuid();
-        var entity = new AvatarImage
-        {
-            Id = id,
-            FileName = body.FileName,
-            Content = body.Content,
-            UserId = body.UserId
-        };
+        var entity = await _mediator.Send(command);
         
-        var isAdded = await ar.AddAvatarImage(entity);
-
-        if (!isAdded)
-            return BadRequest("Something went wrong, avatar not added.");
-        
-        return CreatedAtAction(nameof(Get), new { id = id }, entity);
+        return CreatedAtAction(nameof(Get), new { id = entity.Id }, entity);
     }
     
     [HttpDelete("{id:Guid}")]
-    public async Task<ActionResult> Delete(
-        Guid id,
-        [FromServices] AvatarImageRepository ar)
+    public async Task<ActionResult> Delete(Guid id)
     {
-        var isRemoved = await ar.DeleteAvatarImage(id);
+        var isRemoved = await _mediator
+            .Send(new DeleteAvatarImageCommand { AvatarId = id });
 
         if (!isRemoved)
             return NotFound("Something went wrong, avatar not deleted.");
