@@ -15,7 +15,7 @@ namespace Harmonify.Server.Data.Migrations
         protected override void BuildModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
-            modelBuilder.HasAnnotation("ProductVersion", "7.0.10");
+            modelBuilder.HasAnnotation("ProductVersion", "7.0.12");
 
             modelBuilder.Entity("Duende.IdentityServer.EntityFramework.Entities.DeviceFlowCodes", b =>
                 {
@@ -158,13 +158,52 @@ namespace Harmonify.Server.Data.Migrations
                     b.ToTable("PersistedGrants", (string)null);
                 });
 
-            modelBuilder.Entity("Harmonify.Server.Models.ApplicationUser", b =>
+            modelBuilder.Entity("Harmonify.Shared.Models.Address", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("City")
+                        .IsRequired()
+                        .HasMaxLength(30)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("HouseNumber")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("PostalCode")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Street")
+                        .IsRequired()
+                        .HasMaxLength(30)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("UserId")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("UserId")
+                        .IsUnique();
+
+                    b.ToTable("Address");
+                });
+
+            modelBuilder.Entity("Harmonify.Shared.Models.ApplicationUser", b =>
                 {
                     b.Property<string>("Id")
                         .HasColumnType("TEXT");
 
                     b.Property<int>("AccessFailedCount")
                         .HasColumnType("INTEGER");
+
+                    b.Property<DateTime?>("Birthday")
+                        .HasColumnType("TEXT");
 
                     b.Property<string>("ConcurrencyStamp")
                         .IsConcurrencyToken()
@@ -180,6 +219,9 @@ namespace Harmonify.Server.Data.Migrations
                     b.Property<string>("FirstName")
                         .IsRequired()
                         .HasMaxLength(30)
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime>("JoinedOn")
                         .HasColumnType("TEXT");
 
                     b.Property<string>("LastName")
@@ -213,6 +255,9 @@ namespace Harmonify.Server.Data.Migrations
                     b.Property<string>("SecurityStamp")
                         .HasColumnType("TEXT");
 
+                    b.Property<bool>("ShowBirthday")
+                        .HasColumnType("INTEGER");
+
                     b.Property<bool>("TwoFactorEnabled")
                         .HasColumnType("INTEGER");
 
@@ -232,7 +277,7 @@ namespace Harmonify.Server.Data.Migrations
                     b.ToTable("User", (string)null);
                 });
 
-            modelBuilder.Entity("Harmonify.Server.Models.AvatarImage", b =>
+            modelBuilder.Entity("Harmonify.Shared.Models.AvatarImage", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
@@ -254,7 +299,25 @@ namespace Harmonify.Server.Data.Migrations
                     b.HasIndex("UserId")
                         .IsUnique();
 
-                    b.ToTable("Avatar");
+                    b.ToTable("Avatar", (string)null);
+                });
+
+            modelBuilder.Entity("Harmonify.Shared.Models.Friendship", b =>
+                {
+                    b.Property<string>("MainUserId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("FriendUserId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("INTEGER");
+
+                    b.HasKey("MainUserId", "FriendUserId");
+
+                    b.HasIndex("FriendUserId");
+
+                    b.ToTable("Friendship", (string)null);
                 });
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRole", b =>
@@ -389,13 +452,44 @@ namespace Harmonify.Server.Data.Migrations
                     b.ToTable("AspNetUserTokens", (string)null);
                 });
 
-            modelBuilder.Entity("Harmonify.Server.Models.AvatarImage", b =>
+            modelBuilder.Entity("Harmonify.Shared.Models.Address", b =>
                 {
-                    b.HasOne("Harmonify.Server.Models.ApplicationUser", "User")
-                        .WithOne("Avatar")
-                        .HasForeignKey("Harmonify.Server.Models.AvatarImage", "UserId");
+                    b.HasOne("Harmonify.Shared.Models.ApplicationUser", "User")
+                        .WithOne("Address")
+                        .HasForeignKey("Harmonify.Shared.Models.Address", "UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
 
                     b.Navigation("User");
+                });
+
+            modelBuilder.Entity("Harmonify.Shared.Models.AvatarImage", b =>
+                {
+                    b.HasOne("Harmonify.Shared.Models.ApplicationUser", "User")
+                        .WithOne("Avatar")
+                        .HasForeignKey("Harmonify.Shared.Models.AvatarImage", "UserId")
+                        .OnDelete(DeleteBehavior.Cascade);
+
+                    b.Navigation("User");
+                });
+
+            modelBuilder.Entity("Harmonify.Shared.Models.Friendship", b =>
+                {
+                    b.HasOne("Harmonify.Shared.Models.ApplicationUser", "FriendUser")
+                        .WithMany("Friends")
+                        .HasForeignKey("FriendUserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Harmonify.Shared.Models.ApplicationUser", "MainUser")
+                        .WithMany("MainFriends")
+                        .HasForeignKey("MainUserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("FriendUser");
+
+                    b.Navigation("MainUser");
                 });
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRoleClaim<string>", b =>
@@ -409,7 +503,7 @@ namespace Harmonify.Server.Data.Migrations
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityUserClaim<string>", b =>
                 {
-                    b.HasOne("Harmonify.Server.Models.ApplicationUser", null)
+                    b.HasOne("Harmonify.Shared.Models.ApplicationUser", null)
                         .WithMany()
                         .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.Cascade)
@@ -418,7 +512,7 @@ namespace Harmonify.Server.Data.Migrations
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityUserLogin<string>", b =>
                 {
-                    b.HasOne("Harmonify.Server.Models.ApplicationUser", null)
+                    b.HasOne("Harmonify.Shared.Models.ApplicationUser", null)
                         .WithMany()
                         .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.Cascade)
@@ -433,7 +527,7 @@ namespace Harmonify.Server.Data.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.HasOne("Harmonify.Server.Models.ApplicationUser", null)
+                    b.HasOne("Harmonify.Shared.Models.ApplicationUser", null)
                         .WithMany()
                         .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.Cascade)
@@ -442,16 +536,23 @@ namespace Harmonify.Server.Data.Migrations
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityUserToken<string>", b =>
                 {
-                    b.HasOne("Harmonify.Server.Models.ApplicationUser", null)
+                    b.HasOne("Harmonify.Shared.Models.ApplicationUser", null)
                         .WithMany()
                         .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
                 });
 
-            modelBuilder.Entity("Harmonify.Server.Models.ApplicationUser", b =>
+            modelBuilder.Entity("Harmonify.Shared.Models.ApplicationUser", b =>
                 {
+                    b.Navigation("Address")
+                        .IsRequired();
+
                     b.Navigation("Avatar");
+
+                    b.Navigation("Friends");
+
+                    b.Navigation("MainFriends");
                 });
 #pragma warning restore 612, 618
         }

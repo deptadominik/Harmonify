@@ -1,6 +1,7 @@
 ﻿@using Microsoft.AspNetCore.Components.Authorization
 @using Microsoft.AspNetCore.Components.WebAssembly.Authentication
 @using Harmonify.Client.Services
+@using Harmonify.Shared.DTO
 @using Harmonify.Shared.Models
 @inject AuthenticationStateProvider AuthenticationStateProvider
 @inject NavigationManager Navigation
@@ -12,8 +13,7 @@
             <img style="margin-bottom: 0.2rem !important;" class="ui avatar image" id="avatar-img"/>
             <button onclick="location.href='authentication/profile'" class="circular harmonify-background-color ui button">
                 Hello,
-                @if (loaded) @User?.FirstName
-                !
+                @if (loaded) @User?.FirstName!
             </button>
             <button class="circular ui button grey" @onclick="BeginLogOut">
                 Log out
@@ -35,10 +35,10 @@
 </AuthorizeView>
 
 @code{
-    private bool loaded;
+    private bool loaded = false;
     private string userName = null;
 
-    private ApplicationUser? User { get; set; }
+    private ApplicationUserDTO? User { get; set; }
     
     private AvatarImage? Avatar { get; set; }
 
@@ -54,7 +54,7 @@
         var authState = await AuthenticationStateProvider
             .GetAuthenticationStateAsync();
         if (authState.User.Identity.Name != null) User = await UserService
-            .GetUserByEmail(authState.User.Identity?.Name);
+            .GetUserByEmailAsync(authState.User.Identity?.Name);
         if (User is not null)
         {
             Avatar = await AvatarService.GetAvatarAsync(User.Id);
@@ -66,7 +66,6 @@
                 await JSRuntime
                     .InvokeVoidAsync("changeSrc");
         }
-        
         loaded = true;
     }
 

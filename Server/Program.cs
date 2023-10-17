@@ -1,9 +1,11 @@
 using System.Reflection;
+using System.Text.Json.Serialization;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.EntityFrameworkCore;
 using Harmonify.Server.Data;
 using Harmonify.Server.Repositories;
 using Harmonify.Shared.Models;
+using Microsoft.AspNetCore.Http.Json;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -13,7 +15,7 @@ var connectionString = builder.Configuration.GetConnectionString("DefaultConnect
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
     options.UseSqlite(connectionString));
 builder.Services.AddDatabaseDeveloperPageExceptionFilter();
-    
+
 builder.Services.AddCors(policy =>
 {
     policy.AddPolicy("CorsPolicy", opt => opt
@@ -25,6 +27,7 @@ builder.Services.AddCors(policy =>
 builder.Services.AddSwaggerGen();
 builder.Services.AddScoped<ApplicationUserRepository>();
 builder.Services.AddScoped<AvatarImageRepository>();
+builder.Services.AddScoped<FriendshipRepository>();
 
 builder.Services.AddDefaultIdentity<ApplicationUser>(options => options.SignIn.RequireConfirmedAccount = true)
     .AddEntityFrameworkStores<ApplicationDbContext>();
@@ -35,7 +38,12 @@ builder.Services.AddIdentityServer()
 builder.Services.AddAuthentication()
     .AddIdentityServerJwt();
 
-builder.Services.AddControllersWithViews();
+builder.Services.AddControllersWithViews()
+    .AddJsonOptions(options => 
+        options.JsonSerializerOptions.ReferenceHandler = 
+            ReferenceHandler.IgnoreCycles
+    );
+
 builder.Services.AddRazorPages();
 
 builder.Services.AddAutoMapper(AppDomain.CurrentDomain.GetAssemblies());
@@ -58,10 +66,7 @@ else
 }
 
 app.UseSwagger();
-app.UseSwaggerUI(c =>
-{
-    c.SwaggerEndpoint("/swagger/v1/swagger.json", "Blazor API V1");
-});
+app.UseSwaggerUI(c => { c.SwaggerEndpoint("/swagger/v1/swagger.json", "Blazor API V1"); });
 
 app.UseHttpsRedirection();
 

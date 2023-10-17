@@ -1,6 +1,7 @@
 @page "/Identity/Account/Manage/AvatarCrop"
 @using Harmonify.Shared.Models
 @using Harmonify.Client.Services
+@using Harmonify.Shared.DTO
 @inject IJSRuntime JSRuntime;
 @inject AuthenticationStateProvider AuthenticationStateProvider
 
@@ -132,8 +133,11 @@
     int quality = 100;
     CropInfo state;
 
-    private ApplicationUser? User { get; set; }
+    private ApplicationUserDTO? User { get; set; }
     private AvatarImage? Avatar { get; set; }
+    
+    [CascadingParameter]
+    private Task<AuthenticationState> AuthenticationStateTask { get; set; }
 
     [Inject]
     public IApplicationUserService UserService { get; set; }
@@ -145,10 +149,11 @@
     {
         var authState = await AuthenticationStateProvider
             .GetAuthenticationStateAsync();
+        
         if (authState.User.Identity.Name != null)
         {
             User = await UserService
-                .GetUserByEmail(authState.User.Identity?.Name);
+                .GetUserByEmailAsync(authState.User.Identity?.Name);
             
             Avatar = await AvatarService.GetAvatarAsync(User.Id);
             

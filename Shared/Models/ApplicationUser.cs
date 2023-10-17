@@ -20,7 +20,37 @@ public class ApplicationUser : IdentityUser
     public string LastName { get; set; }
     
     /// <summary>
+    /// User's birthday
+    /// </summary>
+    public DateTime? Birthday { get; set; }
+    
+    /// <summary>
+    /// Determines whether birthday should be shown or not
+    /// </summary>
+    public bool ShowBirthday { get; set; }
+    
+    /// <summary>
+    /// The date when users registered
+    /// </summary>
+    public DateTime JoinedOn { get; set; }
+    
+    /// <summary>
     /// Avatar of user
     /// </summary>
     public AvatarImage? Avatar { get; set; }
+    
+    /// <summary>
+    /// Address of user
+    /// </summary>
+    public Address Address { get; set; }
+
+    /// <summary>
+    /// Friends, which user invited
+    /// </summary>
+    public virtual ICollection<Friendship> MainFriends { get; set; }
+    
+    /// <summary>
+    /// Users I am friends of (users, which invited me)
+    /// </summary>
+    public virtual ICollection<Friendship> Friends { get; set; }
 }

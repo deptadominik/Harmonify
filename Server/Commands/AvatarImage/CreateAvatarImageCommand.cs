@@ -7,11 +7,11 @@ namespace Harmonify.Server.Commands.AvatarImage;
 
 public class CreateAvatarImageCommand: IRequest<AvatarImageDTO>
 {
-    public string FileName { get; set; }
+    public string FileName { get; init; }
     
-    public byte[] Content { get; set; }
+    public byte[] Content { get; init; }
     
-    public string UserId { get; set; }
+    public string UserId { get; init; }
     
     public class Handler : IRequestHandler<CreateAvatarImageCommand, AvatarImageDTO>
     {

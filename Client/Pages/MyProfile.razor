@@ -1,0 +1,235 @@
+@page "/MyProfile"
+@using Harmonify.Shared.Models
+@using Harmonify.Client.Services
+@using Harmonify.Shared.DTO
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@inject IJSRuntime JSRuntime;
+@inject NavigationManager Navigation
+
+<AuthorizeView Context="Authorize">
+    <Authorized>
+        <div class="ui raised segment">
+            <div class="ui centered card">
+                <div class="image">
+                    <img id="avatar-img-main">
+                </div>
+                @if (Avatar is null)
+                {
+                    <div class="ui green button" @onclick="GoToAvatarCrop">
+                        <i class="add icon"></i>
+                        Upload avatar
+                    </div>
+                }
+                else
+                {
+                    <div class="ui blue button" @onclick="GoToAvatarCrop">
+                        <i class="crop alternate icon"></i>
+                        Edit avatar
+                    </div>
+                }
+                <div class="content">
+                    <a class="header">@User?.FullName</a>
+                    <div class="meta">
+                        <span class="left floated">Joined in @User?.JoinedOn</span>
+                        <span class="right floated">
+                            @if (User?.Birthday != null)
+                            {
+                                <i class="birthday cake icon"></i>
+                                @User?.Birthday
+                            }
+                        </span>
+                    </div>
+                    <div class="description">
+                        <i class="building icon"></i>
+                        @User?.City
+                    </div>
+                </div>
+                <div class="extra content">
+                    <a>
+                        <i class="user icon"></i>
+                        @Friends.Count friends
+                    </a>
+                </div>
+            </div>
+            <h4 class="ui horizontal divider header">
+                <i class="users icon"></i>
+                Friends
+            </h4>
+            <div class="ui special four stackable link cards">
+                @foreach (var friend in FriendsWithAmount)
+                {
+                    <div class="card">
+                        <div class="blurring dimmable image">
+                            <div class="ui dimmer">
+                                <div class="content">
+                                    <div class="center">
+                                        <div @onclick="async () => await DeleteFriend(friend.Item1.Id)" class="ui inverted button">Remove friend</div>
+                                    </div>
+                                </div>
+                            </div>
+                            <img id="avatar-img-@friendCounter">
+                        </div>
+                        <div class="content">
+                            <div class="header centered">@friend.Item1.FullName</div>
+                            <div class="meta">
+                                <span class="left floated">Joined in @friend.Item1.JoinedOn</span>
+                                <span class="right floated">
+                                    @if (friend.Item1.Birthday != null)
+                                    {
+                                        <i class="birthday cake icon"></i>
+                                        @friend.Item1.Birthday
+                                    }
+                                </span>
+                            </div>
+                            <div class="description">
+                                <i class="building icon"></i>
+                                @friend.Item1.City
+                            </div>
+                        </div>
+                        <div class="extra content">
+                            <div class="left floated ui label blue">
+                                <i class="user icon"></i>
+                                @friend.Item2 @(friend.Item2 == 1 ? "friend" : "friends")
+                            </div>
+                            <div @onclick="() => NavigateToFriendProfile(friend.Item1.Id)" class="right floated ui label green">View profile</div>
+                        </div>
+                    </div>
+                    @Increment()
+                }
+            </div>
+            <h4 class="ui horizontal divider header">
+                <i class="slideshare icon"></i>
+                Harms
+            </h4>
+        </div>
+    </Authorized>
+    <NotAuthorized>
+        <div class="my-container">
+            <div class="my-sub-container p-2 ">
+                <div style="text-align: center;">
+                    <h3>Log in, to view your profile.</h3>
+                </div>
+            </div>
+        </div>
+    </NotAuthorized>
+</AuthorizeView>
+
+@code {
+    private bool loaded;
+    private int friendCounter = 0;
+
+    private List<ApplicationUserDTO> Friends { get; set; } = new();
+
+    private List<Tuple<ApplicationUserDTO, int>> FriendsWithAmount { get; set; } = new();
+
+    private ApplicationUserDTO? User { get; set; }
+
+    private AvatarImage? Avatar { get; set; }
+
+    [Inject]
+    public IApplicationUserService UserService { get; set; }
+
+    [Inject]
+    public IAvatarImageService AvatarService { get; set; }
+
+    [Inject]
+    public IFriendshipService FriendshipService { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        loaded = false;
+        var authState = await AuthenticationStateProvider
+            .GetAuthenticationStateAsync();
+
+        if (authState.User.Identity.Name != null)
+            User = await UserService
+                .GetUserByEmailAsync(authState.User.Identity?.Name);
+
+        if (User is not null)
+        {
+            Friends = (await FriendshipService.GetMyFriendsWithAvatarAsync(User.Id)).ToList();
+
+            await GetAmountOfFriends();
+
+            Avatar = await AvatarService.GetAvatarAsync(User.Id);
+
+            if (Avatar is not null)
+                await JSRuntime
+                    .SetImageAsync(Avatar.Content, "avatar-img-main", "image/jpeg");
+            else
+                await JSRuntime
+                    .InvokeVoidAsync("changeSrcUnknown");
+
+            await RenderFriendsImages();
+
+            await JSRuntime
+                .InvokeVoidAsync("deleteUser");
+        }
+
+        loaded = true;
+    }
+
+    private void GoToAvatarCrop()
+    {
+        Navigation.NavigateTo("/Identity/Account/Manage/AvatarCrop");
+    }
+
+    private async Task GetAmountOfFriends()
+    {
+        foreach (var friend in Friends)
+        {
+            var amount = await FriendshipService.GetNumberOfFriendsAsync(friend.Id);
+            FriendsWithAmount.Add(new Tuple<ApplicationUserDTO, int>(friend, amount));
+        }
+    }
+
+    private async Task RenderFriendsImages()
+    {
+        var index = 0;
+        StateHasChanged();
+        foreach (var friend in Friends)
+        {
+            if (friend.AvatarContent != null && friend.AvatarContent.Length != 0)
+            {
+                await JSRuntime
+                    .SetImageAsync(friend.AvatarContent, $"avatar-img-{index}", "image/jpeg");
+            }
+            else
+            {
+                await JSRuntime.InvokeVoidAsync("changeSrcFriendUnknown", index);
+            }
+
+            index++;
+        }
+    }
+
+    private async Task DeleteFriend(string friendId)
+    {
+        var isRemoved = await FriendshipService.DeleteFriendshipAsync(User!.Id, friendId);
+
+        if (isRemoved == false)
+        {
+            await JSRuntime
+                .InvokeVoidAsync("alert",
+                    "Something went wrong, user has not been removed from your friends.");
+        }
+        else
+        {
+            await JSRuntime
+                .InvokeVoidAsync("alert",
+                    "The user was removed from your friendship.");
+            StateHasChanged();
+        }
+    }
+
+    private void NavigateToFriendProfile(string id)
+    {
+        Navigation.NavigateTo($"/Profile/{id}");
+    }
+
+    private object? Increment()
+    {
+        friendCounter++;
+        return null;
+    }
+}

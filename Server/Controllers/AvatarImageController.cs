@@ -22,9 +22,8 @@ public class AvatarImageController : ControllerBase
     {
         var entity = await _mediator
             .Send(new GetAvatarImageQuery { UserId = userId });
-        
         if (entity == null)
-            return NotFound("Avatar not found.");
+            return NoContent();
         
         return Ok(entity);
     }

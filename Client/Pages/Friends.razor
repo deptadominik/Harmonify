@@ -1,0 +1,85 @@
+@inject IJSRuntime JsRuntime;
+@inject AuthenticationStateProvider AuthenticationStateProvider
+
+@page "/Friends"
+@using Harmonify.Client.Services
+@using Harmonify.Shared.DTO
+
+<AuthorizeView Context="Authorize">
+    <Authorized>
+        <h3>Friends</h3>
+        <div class="ui large col-md-5 fluid search">
+            <div class="ui left icon input">
+                <input
+                    class="prompt" id="friends-input" type="text" placeholder="Search for friends"/>
+                <i class="users icon"></i>
+            </div>
+            <div class="results"></div>
+        </div>
+    </Authorized>
+    <NotAuthorized>
+        <div class="my-container">
+            <div class="my-sub-container p-2 ">
+                <div style="text-align: center;">
+                    <h3>Log in, to search for friends.</h3>
+                </div>
+            </div>
+        </div>
+    </NotAuthorized>
+</AuthorizeView>
+
+@code {
+    private ApplicationUserDTO User { get; set; }
+
+    [CascadingParameter]
+    private Task<AuthenticationState> AuthenticationStateTask { get; set; }
+
+    [Inject]
+    public IApplicationUserService UserService { get; set; }
+
+    [Inject]
+    public IFriendshipService FriendshipService { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        var authState = await AuthenticationStateProvider
+            .GetAuthenticationStateAsync();
+
+        if (authState.User.Identity.Name != null)
+        {
+            User = await UserService
+                .GetUserByEmailAsync(authState.User.Identity?.Name);
+        }
+
+        await JsRuntime.InvokeVoidAsync("searchForFriends");
+    }
+
+    // TODO remove, since adding users won't be implemented on this page
+    private async void AddUser(string friendUserId)
+    {
+        if (User.Id == friendUserId)
+        {
+            await JsRuntime.InvokeVoidAsync(
+                "alert",
+                "You cannot invite yourself.");
+
+            return;
+        }
+
+        var body = new
+        {
+            MainUserId = User.Id,
+            FriendUserId = friendUserId
+        };
+
+        var mainUserId = await FriendshipService
+            .CreateFriendshipAsync(body);
+
+        if (mainUserId == null)
+        {
+            await JsRuntime.InvokeVoidAsync(
+                "alert",
+                "This user is already your friend.");
+        }
+    }
+}

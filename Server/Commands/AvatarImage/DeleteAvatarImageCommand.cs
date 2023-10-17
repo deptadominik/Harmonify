@@ -7,7 +7,7 @@ namespace Harmonify.Server.Commands.AvatarImage;
 
 public class DeleteAvatarImageCommand : IRequest<bool>
 {
-    public Guid AvatarId { get; set; }
+    public Guid AvatarId { get; init; }
 
     public class Handler : IRequestHandler<DeleteAvatarImageCommand, bool>
     {

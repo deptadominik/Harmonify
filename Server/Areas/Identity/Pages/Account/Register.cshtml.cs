@@ -13,12 +13,14 @@ using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authorization;
 using Harmonify.Shared.Models;
+using Humanizer;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Identity.UI.Services;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.AspNetCore.WebUtilities;
 using Microsoft.Extensions.Logging;
+using Microsoft.IdentityModel.Tokens;
 
 namespace Harmonify.Server.Areas.Identity.Pages.Account
 {
@@ -118,6 +120,25 @@ namespace Harmonify.Server.Areas.Identity.Pages.Account
             [Display(Name = "Confirm password")]
             [Compare("Password", ErrorMessage = "The password and confirmation password do not match.")]
             public string ConfirmPassword { get; set; }
+            
+            [Required(ErrorMessage = "The street is required")]
+            [MaxLength(30, ErrorMessage = "The street should have maximum 30 characters")]
+            [MinLength(3, ErrorMessage = "The street should have at least 3 characters.")]
+            public string Street { get; set; }
+
+            [Required(ErrorMessage = "The city is required")]
+            [MaxLength(30, ErrorMessage = "The city should have maximum 30 characters")]
+            [MinLength(3, ErrorMessage = "The city should have at least 3 characters.")]
+            public string City { get; set; }
+
+            [Required(ErrorMessage = "The postal code is required")]
+            public string PostalCode { get; set; }
+
+            [Required(ErrorMessage = "The house number is required")]
+            public string HouseNumber { get; set; }
+            
+            [BindProperty]
+            public string SelectedDate { get; set; }
         }
 
 
@@ -140,6 +161,20 @@ namespace Harmonify.Server.Areas.Identity.Pages.Account
 
                 user.FirstName = Input.FirstName;
                 user.LastName = Input.LastName;
+                user.Address = new Address
+                {
+                    Id = Guid.NewGuid(),
+                    HouseNumber = Input.HouseNumber,
+                    Street = Input.Street,
+                    City = Input.City,
+                    PostalCode = Input.PostalCode,
+                    UserId = user.Id
+                };
+                user.JoinedOn = DateTime.Now;
+                if (Input.SelectedDate.IsNullOrEmpty())
+                    user.Birthday = null;
+                else
+                    user.Birthday = DateTime.Parse(Input.SelectedDate);
                 
                 var result = await _userManager.CreateAsync(user, Input.Password);
 

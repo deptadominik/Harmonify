@@ -5,6 +5,7 @@
 using System;
 using System.ComponentModel.DataAnnotations;
 using System.Threading.Tasks;
+using Harmonify.Server.Repositories;
 using Harmonify.Shared.Models;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
@@ -18,15 +19,18 @@ namespace Harmonify.Server.Areas.Identity.Pages.Account.Manage
         private readonly UserManager<ApplicationUser> _userManager;
         private readonly SignInManager<ApplicationUser> _signInManager;
         private readonly ILogger<DeletePersonalDataModel> _logger;
+        private readonly FriendshipRepository _friendshipRepository;
 
         public DeletePersonalDataModel(
             UserManager<ApplicationUser> userManager,
             SignInManager<ApplicationUser> signInManager,
-            ILogger<DeletePersonalDataModel> logger)
+            ILogger<DeletePersonalDataModel> logger,
+            FriendshipRepository friendshipRepository)
         {
             _userManager = userManager;
             _signInManager = signInManager;
             _logger = logger;
+            _friendshipRepository = friendshipRepository;
         }
 
         /// <summary>
@@ -86,6 +90,13 @@ namespace Harmonify.Server.Areas.Identity.Pages.Account.Manage
                     return Page();
                 }
             }
+
+            var friends = await _friendshipRepository
+                .GetFriendshipsAsync(user.Id);
+
+            foreach (var friend in friends)
+                await _friendshipRepository
+                    .DeleteFriendshipAsync(friend.MainUserId, friend.FriendUserId);
 
             var result = await _userManager.DeleteAsync(user);
             var userId = await _userManager.GetUserIdAsync(user);

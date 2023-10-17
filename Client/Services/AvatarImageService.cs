@@ -19,7 +19,7 @@ public class AvatarImageService : IAvatarImageService
         var response = await httpClient
             .GetAsync($"AvatarImage?userId={userId}");
 
-        if (response.StatusCode == HttpStatusCode.NotFound)
+        if (response.StatusCode == HttpStatusCode.NoContent)
             return null;
 
         var content = await response.Content.ReadAsStringAsync();

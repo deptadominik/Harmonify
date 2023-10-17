@@ -9,7 +9,9 @@ namespace Harmonify.Server.Data;
 
 public class ApplicationDbContext : ApiAuthorizationDbContext<ApplicationUser>
 {
-    public DbSet<AvatarImage> Avatar { get; set; }  
+    public DbSet<AvatarImage> Avatars { get; set; }  
+    
+    public DbSet<Friendship> Friendships { get; set; }  
     
     public ApplicationDbContext(
         DbContextOptions options,
@@ -22,15 +24,38 @@ public class ApplicationDbContext : ApiAuthorizationDbContext<ApplicationUser>
         base.OnModelCreating(builder);
         
         builder.Entity<ApplicationUser>().ToTable("User");
+        builder.Entity<AvatarImage>().ToTable("Avatar");
+        builder.Entity<Friendship>().ToTable("Friendship");
         
         builder.Entity<AvatarImage>()
             .Property(p => p.Id)
             .ValueGeneratedOnAdd();
-        
+
         builder.Entity<ApplicationUser>()
             .HasOne(a => a.Avatar)
             .WithOne(e => e.User)
             .IsRequired(false)
-            .HasForeignKey<AvatarImage>(n => n.UserId);
+            .HasForeignKey<AvatarImage>(n => n.UserId)
+            .OnDelete(DeleteBehavior.Cascade);
+        
+        builder.Entity<ApplicationUser>()
+            .HasOne(a => a.Address)
+            .WithOne(e => e.User)
+            .IsRequired()
+            .HasForeignKey<Address>(n => n.UserId);
+        
+        builder.Entity<Friendship>()
+            .HasKey(p => new { p.MainUserId , p.FriendUserId });
+
+        builder.Entity<Friendship>()
+            .HasOne(f => f.MainUser)
+            .WithMany(f => f.MainFriends)
+            .HasForeignKey(f => f.MainUserId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        builder.Entity<Friendship>()
+            .HasOne(f => f.FriendUser)
+            .WithMany(f => f.Friends)
+            .HasForeignKey(f => f.FriendUserId);
     }
 }

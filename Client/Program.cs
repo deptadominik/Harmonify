@@ -17,6 +17,7 @@ builder.Services.AddScoped(sp => sp.GetRequiredService<IHttpClientFactory>().Cre
 
 builder.Services.AddScoped<IApplicationUserService, ApplicationUserService>();
 builder.Services.AddScoped<IAvatarImageService, AvatarImageService>();
+builder.Services.AddScoped<IFriendshipService, FriendshipService>();
 
 builder.Services.AddApiAuthorization();
 
