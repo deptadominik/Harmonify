@@ -19,7 +19,7 @@ public class ApplicationUserController : ControllerBase
     }
 
     [HttpGet]
-    public async Task<ActionResult<ApplicationUser?>> Get(string userId)
+    public async Task<ActionResult<ApplicationUserDTO?>> Get(string userId)
     {
         var entity = await _mediator
             .Send(new GetApplicationUserQuery { UserId = userId });

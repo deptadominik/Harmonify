@@ -1,5 +1,4 @@
-﻿using System.ComponentModel.DataAnnotations.Schema;
-using Microsoft.AspNetCore.ApiAuthorization.IdentityServer;
+﻿using Microsoft.AspNetCore.ApiAuthorization.IdentityServer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using Duende.IdentityServer.EntityFramework.Options;
@@ -12,6 +11,10 @@ public class ApplicationDbContext : ApiAuthorizationDbContext<ApplicationUser>
     public DbSet<AvatarImage> Avatars { get; set; }  
     
     public DbSet<Friendship> Friendships { get; set; }  
+    
+    public DbSet<Address> Addresses { get; set; }
+    
+    public DbSet<Notification> Notifications { get; set; }
     
     public ApplicationDbContext(
         DbContextOptions options,
@@ -26,6 +29,8 @@ public class ApplicationDbContext : ApiAuthorizationDbContext<ApplicationUser>
         builder.Entity<ApplicationUser>().ToTable("User");
         builder.Entity<AvatarImage>().ToTable("Avatar");
         builder.Entity<Friendship>().ToTable("Friendship");
+        builder.Entity<Address>().ToTable("Address");
+        builder.Entity<Notification>().ToTable("Notification");
         
         builder.Entity<AvatarImage>()
             .Property(p => p.Id)
@@ -43,6 +48,11 @@ public class ApplicationDbContext : ApiAuthorizationDbContext<ApplicationUser>
             .WithOne(e => e.User)
             .IsRequired()
             .HasForeignKey<Address>(n => n.UserId);
+        
+        builder.Entity<Notification>()
+            .HasOne(a => a.User)
+            .WithMany(e => e.Notifications)
+            .HasForeignKey(n => n.UserId);
         
         builder.Entity<Friendship>()
             .HasKey(p => new { p.MainUserId , p.FriendUserId });

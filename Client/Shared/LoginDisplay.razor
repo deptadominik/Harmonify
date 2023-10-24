@@ -1,6 +1,7 @@
 ﻿@using Microsoft.AspNetCore.Components.Authorization
 @using Microsoft.AspNetCore.Components.WebAssembly.Authentication
 @using Harmonify.Client.Services
+@using Harmonify.Client.Services.Notification
 @using Harmonify.Shared.DTO
 @using Harmonify.Shared.Models
 @inject AuthenticationStateProvider AuthenticationStateProvider
@@ -10,10 +11,15 @@
 <AuthorizeView>
     <Authorized>
         <div class="login-display-mobile">
-            <img style="margin-bottom: 0.2rem !important;" class="ui avatar image" id="avatar-img"/>
+            <img style="margin-bottom: 0.2rem !important;" class="ui avatar image" onclick="location.href='/Identity/Account/Manage/AvatarCrop'" id="avatar-img"/>
+            @if (amountOfNotSeenNotification != 0)
+            {
+                <button onclick="location.href='Notifications'" class="circular ui button red">
+                    <i class="bell outline icon"></i>@amountOfNotSeenNotification
+                </button>
+            }
             <button onclick="location.href='authentication/profile'" class="circular harmonify-background-color ui button">
-                Hello,
-                @if (loaded) @User?.FirstName!
+                Hello, @if (loaded) @User?.FirstName!
             </button>
             <button class="circular ui button grey" @onclick="BeginLogOut">
                 Log out
@@ -37,34 +43,43 @@
 @code{
     private bool loaded = false;
     private string userName = null;
+    private int amountOfNotSeenNotification = 0;
 
     private ApplicationUserDTO? User { get; set; }
-    
+
     private AvatarImage? Avatar { get; set; }
 
     [Inject]
     public IApplicationUserService UserService { get; set; }
-    
+
     [Inject]
     public IAvatarImageService AvatarService { get; set; }
+
+    [Inject]
+    public INotificationService NotificationService { get; set; }
 
     protected override async Task OnInitializedAsync()
     {
         loaded = false;
         var authState = await AuthenticationStateProvider
             .GetAuthenticationStateAsync();
-        if (authState.User.Identity.Name != null) User = await UserService
-            .GetUserByEmailAsync(authState.User.Identity?.Name);
+        if (authState.User.Identity.Name != null)
+            User = await UserService
+                .GetUserByEmailAsync(authState.User.Identity?.Name);
         if (User is not null)
         {
             Avatar = await AvatarService.GetAvatarAsync(User.Id);
-            
+
             if (Avatar is not null)
                 await JSRuntime
                     .SetImageAsync(Avatar.Content, "avatar-img", "image/jpeg");
             else
                 await JSRuntime
                     .InvokeVoidAsync("changeSrc");
+
+            amountOfNotSeenNotification = (await NotificationService
+                .GetMyNotificationsAsync(User.Id))
+                .Count(x => x.MarkedAsSeen == false);
         }
         loaded = true;
     }
@@ -73,4 +88,5 @@
     {
         Navigation.NavigateToLogout("authentication/logout");
     }
+
 }

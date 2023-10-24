@@ -1,4 +1,5 @@
 using Harmonify.Server.Data;
+using Harmonify.Shared.Enums;
 using Harmonify.Shared.Models;
 using Microsoft.EntityFrameworkCore;
 
@@ -35,6 +36,13 @@ public class FriendshipRepository
 
         return friendship;
     }
+    
+    public async Task<ICollection<Friendship>> GetMyPendingFriendshipRequestsAsync(string userId)
+    {
+        return await ctx.Friendships
+            .Where(x => x.FriendUserId == userId && x.Status == FriendshipStatus.Requested)
+            .ToListAsync();
+    }
 
     public ICollection<ApplicationUser> GetMyFriendsWithAvatar(string userId)
     {
@@ -43,14 +51,16 @@ public class FriendshipRepository
             .Include(x => x.MainUser).ThenInclude(x => x.Address)
             .Include(x => x.FriendUser).ThenInclude(x => x.Avatar)
             .Include(x => x.FriendUser).ThenInclude(x => x.Address)
-            .Where(x => x.MainUserId == userId)
+            .Where(x => x.MainUserId == userId && x.Status == FriendshipStatus.Accepted)
             .Select(x => x.FriendUser)
             .ToList();
 
         return myFriends.Concat(ctx.Friendships
                 .Include(x => x.MainUser).ThenInclude(x => x.Avatar)
+                .Include(x => x.MainUser).ThenInclude(x => x.Address)
                 .Include(x => x.FriendUser).ThenInclude(x => x.Avatar)
-                .Where(x => x.FriendUserId == userId)
+                .Include(x => x.FriendUser).ThenInclude(x => x.Address)
+                .Where(x => x.FriendUserId == userId && x.Status == FriendshipStatus.Accepted)
                 .Select(x => x.MainUser)
                 .ToList())
             .ToList();
@@ -74,6 +84,20 @@ public class FriendshipRepository
     {
         await ctx.Friendships.AddAsync(friendship);
 
+        return await ctx.SaveChangesAsync() > 0;
+    }
+    
+    public async Task<bool> UpdateFriendshipAsync(Friendship friendship)
+    {
+        var entity = await ctx.Friendships
+            .FirstOrDefaultAsync(f => f.MainUserId == friendship.MainUserId &&
+                                      f.FriendUserId == friendship.FriendUserId);
+
+        if (entity == null)
+            return false;
+
+        entity.Status = friendship.Status;
+        
         return await ctx.SaveChangesAsync() > 0;
     }
     

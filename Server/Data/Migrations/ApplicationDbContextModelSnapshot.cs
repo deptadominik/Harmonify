@@ -191,7 +191,7 @@ namespace Harmonify.Server.Data.Migrations
                     b.HasIndex("UserId")
                         .IsUnique();
 
-                    b.ToTable("Address");
+                    b.ToTable("Address", (string)null);
                 });
 
             modelBuilder.Entity("Harmonify.Shared.Models.ApplicationUser", b =>
@@ -318,6 +318,40 @@ namespace Harmonify.Server.Data.Migrations
                     b.HasIndex("FriendUserId");
 
                     b.ToTable("Friendship", (string)null);
+                });
+
+            modelBuilder.Entity("Harmonify.Shared.Models.Notification", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Description")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<bool>("MarkedAsSeen")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<DateTime>("ReceivedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("ReferenceUrl")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("Type")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("UserId")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("UserId");
+
+                    b.ToTable("Notification", (string)null);
                 });
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRole", b =>
@@ -492,6 +526,17 @@ namespace Harmonify.Server.Data.Migrations
                     b.Navigation("MainUser");
                 });
 
+            modelBuilder.Entity("Harmonify.Shared.Models.Notification", b =>
+                {
+                    b.HasOne("Harmonify.Shared.Models.ApplicationUser", "User")
+                        .WithMany("Notifications")
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("User");
+                });
+
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRoleClaim<string>", b =>
                 {
                     b.HasOne("Microsoft.AspNetCore.Identity.IdentityRole", null)
@@ -553,6 +598,8 @@ namespace Harmonify.Server.Data.Migrations
                     b.Navigation("Friends");
 
                     b.Navigation("MainFriends");
+
+                    b.Navigation("Notifications");
                 });
 #pragma warning restore 612, 618
         }

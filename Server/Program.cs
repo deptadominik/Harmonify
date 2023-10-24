@@ -28,6 +28,7 @@ builder.Services.AddSwaggerGen();
 builder.Services.AddScoped<ApplicationUserRepository>();
 builder.Services.AddScoped<AvatarImageRepository>();
 builder.Services.AddScoped<FriendshipRepository>();
+builder.Services.AddScoped<NotificationRepository>();
 
 builder.Services.AddDefaultIdentity<ApplicationUser>(options => options.SignIn.RequireConfirmedAccount = true)
     .AddEntityFrameworkStores<ApplicationDbContext>();

@@ -1,7 +1,509 @@
 @page "/Profile/{id}"
-<h3>Profile</h3>
+@using Harmonify.Shared.Models
+@using Harmonify.Client.Services
+@using Harmonify.Client.Services.Notification
+@using Harmonify.Shared.DTO
+@using Harmonify.Shared.Enums
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@inject IJSRuntime JSRuntime;
+@inject NavigationManager Navigation
+
+<AuthorizeView Context="Authorize">
+    <Authorized>
+        <div class="ui raised segment">
+            <div class="ui centered card">
+                <div class="image">
+                    <img id="avatar-img-main">
+                </div>
+                @if (Friendship is null)
+                {
+                    <div class="ui blue button" @onclick="() => Invite(UserProfile.Id)">
+                        <i class="add icon"></i>
+                        Invite
+                    </div>
+                }
+                else if (Friendship.Status == FriendshipStatus.Declined
+                         && Friendship.MainUserId == UserProfile.Id)
+                {
+                    <div class="ui red button">
+                        You declined @UserProfile.FirstName's invitation.
+                    </div>
+                    <div class="ui blue button" @onclick="() => InviteAfterDeclined(UserProfile.Id)">
+                        <i class="add icon"></i>
+                        Invite
+                    </div>
+                }
+                else if (Friendship.Status == FriendshipStatus.Declined
+                         && Friendship.FriendUserId == UserProfile.Id)
+                {
+                    <div class="ui red button">
+                        @UserProfile.FirstName declined your invitation.
+                    </div>
+                    <div class="ui blue button" @onclick="() => InviteAgain(UserProfile.Id)">
+                        <i class="add icon"></i>
+                        Invite again
+                    </div>
+                }
+                else if (Friendship.Status == FriendshipStatus.Accepted)
+                {
+                    <div class="ui green button">
+                        <i class="check circle outline icon"></i>
+                        You are friends
+                    </div>
+                    <div class="ui red button"
+                         @onclick="async () => await DeleteFriend(UserProfile.Id)">
+                        <i class="trash alternate outline icon"></i>
+                        Remove friend
+                    </div>
+                }
+                else if (Friendship.Status == FriendshipStatus.Requested && Friendship.MainUserId == MyUserData.Id)
+                {
+                    <div class="ui blue button">
+                        <i class="spinner icon"></i>
+                        Invitation sent
+                    </div>
+                }
+                else if (Friendship.Status == FriendshipStatus.Requested && Friendship.MainUserId == UserProfile.Id)
+                {
+                    <div class="ui blue button">
+                        @UserProfile.FullName sent you an invitation.
+                    </div>
+                    <div class="ui buttons">
+                        <button class="ui green button"
+                                @onclick="async () => await AcceptFriend(UserProfile.Id)">Accept</button>
+                      <div class="or"></div>
+                        <button class="ui red button"
+                                @onclick="async () => await DeclineFriend(UserProfile.Id)">Decline</button>
+                    </div>
+                }
+                <div class="content">
+                    <a class="header">@UserProfile?.FullName</a>
+                    <div class="meta">
+                        <span class="left floated">Joined in @UserProfile?.JoinedOn</span>
+                        <span class="right floated">
+                            @if (UserProfile?.Birthday != null)
+                            {
+                                <i class="birthday cake icon"></i>
+                                @UserProfile?.Birthday
+                            }
+                        </span>
+                    </div>
+                    <div class="description">
+                        <i class="building icon"></i>
+                        @UserProfile?.City
+                    </div>
+                </div>
+                <div class="extra content">
+                    <a>
+                        <i class="user icon"></i>
+                        @Friends.Count friends
+                    </a>
+                </div>
+            </div>
+            <h4 class="ui horizontal divider header">
+                <i class="users icon"></i>
+                Friends
+            </h4>
+            <div class="ui special three stackable link cards">
+                @foreach (var friend in FriendsWithAmount)
+                {
+                    <div class="card">
+                        <div class="blurring dimmable image">
+                            <div class="ui dimmer">
+                                <div class="content">
+                                    <div class="center">
+                                        @* TODO: IMPLEMENT IMAGE SLIDE  *@
+                                        @* <div @onclick="() => NavigateToFriendProfile(friend.Item1.Id)" class="ui inverted button">View profile</div> *@
+                                    </div>
+                                </div>
+                            </div>
+                            <img id="avatar-img-@friendCounter">
+                        </div>
+                        <div class="content">
+                            <div class="header centered">@friend.Item1.FullName</div>
+                            <div class="meta">
+                                <span class="left floated">Joined in @friend.Item1.JoinedOn</span>
+                                <span class="right floated">
+                                    @if (friend.Item1.Birthday != null)
+                                    {
+                                        <i class="birthday cake icon"></i>
+                                        @friend.Item1.Birthday
+                                    }
+                                </span>
+                            </div>
+                            <div class="description">
+                                <i class="building icon"></i>
+                                @friend.Item1.City
+                            </div>
+                        </div>
+                        <div class="extra content">
+                            <div class="left floated ui label blue">
+                                <i class="user icon"></i>
+                                @friend.Item2 @(friend.Item2 == 1 ? "friend" : "friends")
+                            </div>
+                            <div @onclick="() => NavigateToFriendProfile(friend.Item1.Id)" class="right floated ui label green">View profile</div>
+                        </div>
+                    </div>
+                    @Increment()
+                }
+            </div>
+            <h4 class="ui horizontal divider header">
+                <i class="slideshare icon"></i>
+                Harms
+            </h4>
+        </div>
+    </Authorized>
+    <NotAuthorized>
+        <div class="my-container">
+            <div class="my-sub-container p-2 ">
+                <div style="text-align: center;">
+                    <h3>Log in, to view your profile.</h3>
+                </div>
+            </div>
+        </div>
+    </NotAuthorized>
+</AuthorizeView>
 
 @code {
+
     [Parameter]
     public string? Id { get; set; }
+
+    private bool loaded;
+    private int friendCounter = 0;
+
+    private List<ApplicationUserDTO> Friends { get; set; } = new();
+
+    private List<Tuple<ApplicationUserDTO, int>> FriendsWithAmount { get; set; } = new();
+
+    private ApplicationUserDTO? MyUserData { get; set; }
+
+    private ApplicationUserDTO? UserProfile { get; set; }
+
+    private AvatarImage? Avatar { get; set; }
+
+    private Friendship? Friendship { get; set; }
+
+    [Inject]
+    public IApplicationUserService UserService { get; set; }
+
+    [Inject]
+    public IAvatarImageService AvatarService { get; set; }
+
+    [Inject]
+    public IFriendshipService FriendshipService { get; set; }
+
+    [Inject]
+    public INotificationService NotificationService { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        loaded = false;
+        var authState = await AuthenticationStateProvider
+            .GetAuthenticationStateAsync();
+
+        if (authState.User.Identity.Name != null)
+        {
+            MyUserData = await UserService
+                .GetUserByEmailAsync(authState.User.Identity?.Name);
+
+            if (MyUserData.Id == Id)
+                Navigation.NavigateTo("/MyProfile", forceLoad: true);
+
+            UserProfile = await UserService
+                .GetUserByIdAsync(Id);
+            Friendship = await FriendshipService
+                .GetAsync(MyUserData.Id, UserProfile.Id);
+        }
+
+
+        if (UserProfile is not null)
+        {
+            Friends = (await FriendshipService.GetMyFriendsWithAvatarAsync(UserProfile.Id)).ToList();
+
+            await GetAmountOfFriends();
+
+            Avatar = await AvatarService.GetAvatarAsync(UserProfile.Id);
+
+            if (Avatar is not null)
+                await JSRuntime
+                    .SetImageAsync(Avatar.Content, "avatar-img-main", "image/jpeg");
+            else
+                await JSRuntime
+                    .InvokeVoidAsync("changeSrcUnknown");
+
+            await RenderFriendsImages();
+
+            await JSRuntime
+                .InvokeVoidAsync("deleteUser");
+        }
+
+        loaded = true;
+    }
+
+    private async Task GetAmountOfFriends()
+    {
+        foreach (var friend in Friends)
+        {
+            var amount = await FriendshipService.GetNumberOfFriendsAsync(friend.Id);
+            FriendsWithAmount.Add(new Tuple<ApplicationUserDTO, int>(friend, amount));
+        }
+    }
+
+    private async Task RenderFriendsImages()
+    {
+        var index = 0;
+        StateHasChanged();
+        foreach (var friend in Friends)
+        {
+            if (friend.AvatarContent != null && friend.AvatarContent.Length != 0)
+            {
+                await JSRuntime
+                    .SetImageAsync(friend.AvatarContent, $"avatar-img-{index}", "image/jpeg");
+            }
+            else
+            {
+                await JSRuntime.InvokeVoidAsync("changeSrcFriendUnknown", index);
+            }
+
+            index++;
+        }
+    }
+
+    private async Task DeleteFriend(string friendId)
+    {
+        var isRemoved = await FriendshipService.DeleteFriendshipAsync(MyUserData!.Id, friendId);
+
+        if (isRemoved == false)
+            await JSRuntime
+                .InvokeVoidAsync("errorToast",
+                    "Something went wrong, user has not been removed from your friends.");
+        else
+        {
+            await JSRuntime
+                .InvokeVoidAsync("successToast",
+                    "The user was removed from your friendship.");
+            await Task.Delay(2500);
+            NavigateToFriendProfile(Id);
+        }
+    }
+
+    private async Task Invite(string friendUserId)
+    {
+        if (MyUserData.Id == friendUserId)
+        {
+            await JSRuntime.InvokeVoidAsync(
+                "errorToast",
+                "You cannot invite yourself.");
+
+            return;
+        }
+
+        var body = new
+        {
+            MainUserId = MyUserData.Id,
+            FriendUserId = friendUserId
+        };
+
+        var mainUserId = await FriendshipService
+            .CreateFriendshipAsync(body);
+
+        if (mainUserId == null)
+        {
+            await JSRuntime.InvokeVoidAsync(
+                "errorToast",
+                "This user is already your friend.");
+        }
+        else
+        {
+            var notificationBody = new
+            {
+                Type = NotificationType.Friendship,
+                Description = $"{MyUserData.FullName} sent you an invitation.",
+                MarkedAsSeen = false,
+                ReceivedAt = DateTime.Now,
+                ReferenceUrl = $"/Profile/{MyUserData.Id}",
+                UserId = friendUserId
+            };
+
+            await NotificationService.CreateAsync(notificationBody);
+
+            await JSRuntime.InvokeVoidAsync(
+                "successToast",
+                "Request sent successfully!");
+            await Task.Delay(2500);
+            NavigateToFriendProfile(Id);
+        }
+    }
+
+    /// Method used for case, when User wants to invite a Friend,
+    /// who's invitation was already declined by User
+    private async void InviteAfterDeclined(string friendUserId)
+    {
+        if (MyUserData.Id == friendUserId)
+        {
+            await JSRuntime.InvokeVoidAsync(
+                "errorToast",
+                "You cannot invite yourself.");
+
+            return;
+        }
+
+        var wasRemoved = await FriendshipService.DeleteFriendshipAsync(
+            userId: friendUserId,
+            friendId: MyUserData.Id);
+
+        if (wasRemoved == false)
+        {
+            await JSRuntime.InvokeVoidAsync(
+                "errorToast",
+                "Something went wrong with sending this invitation.");
+
+            return;
+        }
+
+        await Invite(friendUserId);
+    }
+
+    /// Method used for case, when User wants to invite again a Friend,
+    /// which already declined User's invitation
+    private async void InviteAgain(string friendUserId)
+    {
+        if (MyUserData.Id == friendUserId)
+        {
+            await JSRuntime.InvokeVoidAsync(
+                "errorToast",
+                "You cannot invite yourself.");
+
+            return;
+        }
+
+        var body = new
+        {
+            MainUserId = MyUserData.Id,
+            FriendUserId = friendUserId,
+            Status = FriendshipStatus.Requested
+        };
+
+        var friendship = await FriendshipService
+            .UpdateFriendshipAsync(body);
+
+        if (friendship == null)
+        {
+            await JSRuntime.InvokeVoidAsync(
+                "errorToast",
+                "Something went wrong with sending this invitation.");
+        }
+        else
+        {
+            var notificationBody = new
+            {
+                Type = NotificationType.Friendship,
+                Description = $"{MyUserData.FullName} sent you an invitation.",
+                MarkedAsSeen = false,
+                ReceivedAt = DateTime.Now,
+                ReferenceUrl = $"/Profile/{MyUserData.Id}",
+                UserId = friendUserId
+            };
+
+            await NotificationService.CreateAsync(notificationBody);
+
+            await JSRuntime.InvokeVoidAsync(
+                "successToast",
+                "Request sent successfully!");
+            await Task.Delay(2500);
+            NavigateToFriendProfile(Id);
+        }
+    }
+
+    private async Task AcceptFriend(string friendWhichRequestedId)
+    {
+        var body = new
+        {
+            MainUserId = friendWhichRequestedId,
+            FriendUserId = MyUserData.Id,
+            Status = FriendshipStatus.Accepted
+        };
+
+        var friendship = await FriendshipService
+            .UpdateFriendshipAsync(body);
+        
+        if (friendship == null)
+        {
+            await JSRuntime.InvokeVoidAsync(
+                "errorToast",
+                "Something went wrong, we couldn't accept this invitation.");
+        }
+        else
+        {
+            var notificationBody = new
+            {
+                Type = NotificationType.Friendship,
+                Description = $"{MyUserData.FullName} accepted your invitation.",
+                MarkedAsSeen = false,
+                ReceivedAt = DateTime.Now,
+                ReferenceUrl = $"/Profile/{MyUserData.Id}",
+                UserId = friendWhichRequestedId
+            };
+        
+            await NotificationService.CreateAsync(notificationBody);
+            
+            await JSRuntime.InvokeVoidAsync(
+                "successToast",
+                "Invitation was accepted successfully.");
+            await Task.Delay(2500);
+            NavigateToFriendProfile(Id);
+        }
+    }
+    
+    private async Task DeclineFriend(string friendWhichRequestedId)
+    {
+        var body = new
+        {
+            MainUserId = friendWhichRequestedId,
+            FriendUserId = MyUserData.Id,
+            Status = FriendshipStatus.Declined
+        };
+
+        var friendship = await FriendshipService
+            .UpdateFriendshipAsync(body);
+        
+        if (friendship == null)
+        {
+            await JSRuntime.InvokeVoidAsync(
+                "errorToast",
+                "Something went wrong, we couldn't decline this invitation.");
+        }
+        else
+        {
+            var notificationBody = new
+            {
+                Type = NotificationType.Friendship,
+                Description = $"{MyUserData.FullName} declined your invitation.",
+                MarkedAsSeen = false,
+                ReceivedAt = DateTime.Now,
+                ReferenceUrl = $"/Profile/{MyUserData.Id}",
+                UserId = friendWhichRequestedId
+            };
+        
+            await NotificationService.CreateAsync(notificationBody);
+            
+            await JSRuntime.InvokeVoidAsync(
+                "successToast",
+                "Invitation was declined successfully.");
+            await Task.Delay(2500);
+            NavigateToFriendProfile(Id);
+        }
+    }
+
+    private void NavigateToFriendProfile(string id)
+    {
+        Navigation.NavigateTo($"/Profile/{id}", forceLoad: true);
+    }
+
+    private object? Increment()
+    {
+        friendCounter++;
+        return null;
+    }
 }

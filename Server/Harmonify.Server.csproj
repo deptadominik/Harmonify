@@ -48,9 +48,8 @@
       </Content>
     </ItemGroup>
 
-    <ItemGroup>
-      <Folder Include="Models\" />
-    </ItemGroup>
+
+
 
 <!--    <ItemGroup>-->
 <!--      <_ContentIncludedByDefault Remove="wwwroot\fomantic\dist\components\accordion.css" />-->

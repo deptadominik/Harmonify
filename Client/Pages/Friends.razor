@@ -1,20 +1,69 @@
-@inject IJSRuntime JsRuntime;
-@inject AuthenticationStateProvider AuthenticationStateProvider
-
 @page "/Friends"
 @using Harmonify.Client.Services
+@using Harmonify.Client.Services.Notification
 @using Harmonify.Shared.DTO
+@using Harmonify.Shared.Enums
+@inject IJSRuntime JsRuntime;
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@inject NavigationManager Navigation
 
 <AuthorizeView Context="Authorize">
     <Authorized>
-        <h3>Friends</h3>
-        <div class="ui large col-md-5 fluid search">
-            <div class="ui left icon input">
-                <input
-                    class="prompt" id="friends-input" type="text" placeholder="Search for friends"/>
-                <i class="users icon"></i>
+        <div class="ui segment">
+            <div class="ui two column very relaxed stackable grid">
+                <div class="column">
+                    <h4 class="ui horizontal divider header">
+                        <i class="search icon"></i>
+                        Search for friends
+                    </h4>
+                    <div class="ui fluid search">
+                        <div class="ui left icon input">
+                            <input
+                                class="prompt" id="friends-input" type="text" placeholder="Search for friends"/>
+                            <i class="users icon"></i>
+                        </div>
+                        <div class="results"></div>
+                    </div>
+                </div>
+                <div class="column">
+                    <h4 class="ui horizontal divider header">
+                        <i class="user clock icon"></i>
+                        Review your pending requests
+                    </h4>
+                    <div class="ui two stackable cards">
+                        @foreach (var user in UsersPendingRequest)
+                        {
+                            <div class="card">
+                                <a class="content" @onclick="() => NavigateToFriendProfile(user.Id)">
+                                    <img class="right floated mini ui image" src="unknown-avatar.png">
+                                    <div class="header">
+                                        @user.FullName
+                                    </div>
+                                    <div class="meta">
+                                        Joined in @user.JoinedOn.Split('.').Last()
+                                    </div>
+                                    <div class="description">
+                                        @user.FirstName wants to add you as a friend
+                                    </div>
+                                </a>
+                                <div class="extra content">
+                                    <div class="ui two buttons">
+                                        <div class="ui basic green button"
+                                             style="padding: .78571429em 0.5em .78571429em !important;"
+                                             @onclick="async () => await AcceptFriend(user.Id)">Accept</div>
+                                        <div class="ui basic red button"
+                                             style="padding: .78571429em 0.5em .78571429em !important;"
+                                             @onclick="async () => await DeclineFriend(user.Id)">Decline</div>
+                                    </div>
+                                </div>
+                            </div>
+                        }
+                    </div>
+                </div>
             </div>
-            <div class="results"></div>
+            <div class="ui vertical divider">
+                OR
+            </div>
         </div>
     </Authorized>
     <NotAuthorized>
@@ -31,6 +80,8 @@
 @code {
     private ApplicationUserDTO User { get; set; }
 
+    private List<ApplicationUserDTO> UsersPendingRequest { get; set; } = new();
+
     [CascadingParameter]
     private Task<AuthenticationState> AuthenticationStateTask { get; set; }
 
@@ -39,6 +90,9 @@
 
     [Inject]
     public IFriendshipService FriendshipService { get; set; }
+    
+    [Inject]
+    public INotificationService NotificationService { get; set; }
 
     protected override async Task OnInitializedAsync()
     {
@@ -49,37 +103,101 @@
         {
             User = await UserService
                 .GetUserByEmailAsync(authState.User.Identity?.Name);
+            var pendingRequests = await FriendshipService
+                .GetPendingFriendshipRequestsAsync(User.Id);
+            
+            foreach (var request in pendingRequests)
+            {
+                var user = await UserService.GetUserByIdAsync(request.MainUserId);
+                UsersPendingRequest.Add(user);
+            }
         }
 
         await JsRuntime.InvokeVoidAsync("searchForFriends");
     }
 
-    // TODO remove, since adding users won't be implemented on this page
-    private async void AddUser(string friendUserId)
+    private async Task AcceptFriend(string friendWhichRequestedId)
     {
-        if (User.Id == friendUserId)
-        {
-            await JsRuntime.InvokeVoidAsync(
-                "alert",
-                "You cannot invite yourself.");
-
-            return;
-        }
-
         var body = new
         {
-            MainUserId = User.Id,
-            FriendUserId = friendUserId
+            MainUserId = friendWhichRequestedId,
+            FriendUserId = User.Id,
+            Status = FriendshipStatus.Accepted
         };
 
-        var mainUserId = await FriendshipService
-            .CreateFriendshipAsync(body);
-
-        if (mainUserId == null)
+        var friendship = await FriendshipService
+            .UpdateFriendshipAsync(body);
+        
+        if (friendship == null)
         {
             await JsRuntime.InvokeVoidAsync(
-                "alert",
-                "This user is already your friend.");
+                "errorToast",
+                "Something went wrong, we couldn't accept this invitation.");
         }
+        else
+        {
+            var notificationBody = new
+            {
+                Type = NotificationType.Friendship,
+                Description = $"{User.FullName} accepted your invitation.",
+                MarkedAsSeen = false,
+                ReceivedAt = DateTime.Now,
+                ReferenceUrl = $"/Profile/{User.Id}",
+                UserId = friendWhichRequestedId
+            };
+        
+            await NotificationService.CreateAsync(notificationBody);
+            
+            await JsRuntime.InvokeVoidAsync(
+                "successToast",
+                "Invitation was accepted successfully.");
+            await Task.Delay(2500);
+            Navigation.NavigateTo("/Friends", forceLoad: true);
+        }
+    }
+    
+    private async Task DeclineFriend(string friendWhichRequestedId)
+    {
+        var body = new
+        {
+            MainUserId = friendWhichRequestedId,
+            FriendUserId = User.Id,
+            Status = FriendshipStatus.Declined
+        };
+
+        var friendship = await FriendshipService
+            .UpdateFriendshipAsync(body);
+        
+        if (friendship == null)
+        {
+            await JsRuntime.InvokeVoidAsync(
+                "errorToast",
+                "Something went wrong, we couldn't decline this invitation.");
+        }
+        else
+        {
+            var notificationBody = new
+            {
+                Type = NotificationType.Friendship,
+                Description = $"{User.FullName} declined your invitation.",
+                MarkedAsSeen = false,
+                ReceivedAt = DateTime.Now,
+                ReferenceUrl = $"/Profile/{User.Id}",
+                UserId = friendWhichRequestedId
+            };
+        
+            await NotificationService.CreateAsync(notificationBody);
+            
+            await JsRuntime.InvokeVoidAsync(
+                "successToast",
+                "Invitation was declined successfully.");
+            await Task.Delay(2500);
+            Navigation.NavigateTo("/Friends", forceLoad: true);
+        }
+    }
+    
+    private void NavigateToFriendProfile(string id)
+    {
+        Navigation.NavigateTo($"/Profile/{id}", forceLoad: true);
     }
 }

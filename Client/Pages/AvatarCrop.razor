@@ -4,6 +4,7 @@
 @using Harmonify.Shared.DTO
 @inject IJSRuntime JSRuntime;
 @inject AuthenticationStateProvider AuthenticationStateProvider
+@inject NavigationManager Navigation
 
 <PageTitle>Avatar crop</PageTitle>
 
@@ -167,12 +168,12 @@
         if (args.File.Size > 2097152)
         {
             await JSRuntime.InvokeVoidAsync(
-                "alert",
+                "errorToast",
                 "The size of the photo is too large - the allowed size is 2 MB");
 
         } else if (allowedTypes.Contains(args.File.ContentType) == false)
             await JSRuntime.InvokeVoidAsync(
-                "alert",
+                "errorToast",
                 "The type of the file is not supported - supported types are: jpg, jpeg, png.");
         else
             file = args.File;
@@ -182,7 +183,7 @@
     {
         if (width > 800 || height > 800)
             await JSRuntime.InvokeVoidAsync(
-                "alert",
+                "errorToast",
                 "The resolution of image is too large - maximum supported resolution is 800x800 px");
         else
         {
@@ -205,7 +206,7 @@
             if (avatarId is null)
             {
                 await JSRuntime.InvokeVoidAsync(
-                    "alert",
+                    "errorToast",
                     "Something went wrong, avatar not uploaded.");
 
                 return;
@@ -226,14 +227,10 @@
         if (!isDeleted)
         {
             await JSRuntime.InvokeVoidAsync(
-                "alert",
+                "errorToast",
                 "Something went wrong, avatar not deleted.");
         }
-
-        displayCropResult = false;
-
-        await JSRuntime.SetImageAsync(new byte[] { }, "my-img", "image/jpeg");
-
-        Avatar = null;
+        else
+            Navigation.NavigateTo("/Identity/Account/Manage/AvatarCrop", forceLoad: true);
     }
 }

@@ -45,6 +45,11 @@ public class ApplicationUser : IdentityUser
     public Address Address { get; set; }
 
     /// <summary>
+    /// User's notifications
+    /// </summary>
+    public virtual ICollection<Notification> Notifications { get; set; }
+    
+    /// <summary>
     /// Friends, which user invited
     /// </summary>
     public virtual ICollection<Friendship> MainFriends { get; set; }

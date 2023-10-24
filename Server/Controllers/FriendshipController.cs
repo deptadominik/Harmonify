@@ -31,6 +31,33 @@ public class FriendshipController : ControllerBase
         return Ok(entities);
     }
     
+    [HttpGet("status/{userId}/{friendUserId}")]
+    public async Task<ActionResult<Friendship>> GetFriendship(string userId, string friendUserId)
+    {
+        var friendship = await _mediator.Send(new GetFriendshipQuery
+        {
+            MainUserId = userId,
+            FriendUserId = friendUserId
+        });
+        
+        if (friendship == null)
+            return NoContent();
+        
+        return Ok(friendship);
+    }
+    
+    [HttpGet("pending")]
+    public async Task<ActionResult<ICollection<Friendship>>> GetPendingFriendshipRequests(string userId)
+    {
+        var friendships = await _mediator
+            .Send(new GetPendingFriendshipsRequestsQuery { UserId = userId });
+        
+        if (friendships.IsNullOrEmpty())
+            return NoContent();
+        
+        return Ok(friendships);
+    }
+    
     [HttpGet("my-friends/with-avatar")]
     public async Task<ActionResult<ICollection<ApplicationUserDTO>>> GetMyFriendsWithAvatar(string userId)
     {
@@ -73,6 +100,29 @@ public class FriendshipController : ControllerBase
             .Send(request);
         
         return CreatedAtAction(nameof(Get), new { mainUserId = entity.MainUserId }, entity);
+    }
+    
+    [HttpPatch("update")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    public async Task<ActionResult<Friendship>> Update(UpdateFriendshipCommand request)
+    {
+        var friendship = await _mediator.Send(new GetFriendshipQuery
+        {
+            MainUserId = request.MainUserId,
+            FriendUserId = request.FriendUserId
+        });
+
+        if (friendship == null)
+            return BadRequest("Entity doesn't exist.");
+
+        if (request.MainUserId == request.FriendUserId)
+            return BadRequest("Cannot update friendship between same users.");
+
+        var entity = await _mediator
+            .Send(request);
+        
+        return Ok(entity);
     }
     
     [HttpDelete("{mainUserId}/{friendUserId}")]

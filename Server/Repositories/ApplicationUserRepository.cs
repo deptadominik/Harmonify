@@ -16,6 +16,7 @@ public class ApplicationUserRepository
     public async Task<ApplicationUser?> GetUserByIdAsync(string userId)
     {
         return await ctx.Users
+            .Include(a => a.Address)
             .FirstOrDefaultAsync(u => u.Id == userId);
     }
     

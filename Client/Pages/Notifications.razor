@@ -1,0 +1,208 @@
+@page "/Notifications"
+@using Harmonify.Shared.DTO
+@using Harmonify.Client.Services
+@using Harmonify.Client.Services.Notification
+@using Harmonify.Shared.Enums
+@using Harmonify.Shared.Models
+@inject IJSRuntime JsRuntime;
+@inject NavigationManager Navigation;
+@inject AuthenticationStateProvider AuthenticationStateProvider
+
+<AuthorizeView Context="Authorize">
+    <Authorized>
+        <div class="ui segments" style="padding-bottom: 3%;
+                                        padding-left: 3%;
+                                        padding-right: 3%;">
+            <div class="ui segment" style="padding: 1em 0.2em;">
+                <h3>Notifications</h3>
+            </div>
+            @if (MyNotSeenNotifications?.Count > 1)
+            {
+                <button style="margin-bottom: 1%;" @onclick="async () => await MarkAllAsSeen()" class="small circular harmonify-background-color ui button">
+                    Mark all as seen
+                </button>
+            }
+            <div class="ui feed">
+                @if (loaded)
+                {
+                    @if (MySeenNotifications?.Count == 0 && MyNotSeenNotifications?.Count == 0)
+                    {
+                        <div class="ui blue nag">
+                            <div class="title">You don't have any notifications yet.</div>
+                        </div>
+                    }
+                    @foreach (var notification in MyNotSeenNotifications)
+                    {
+                        <div class="event">
+                            <div class="label" style="align-self: center !important;">
+                                @if (notification.Type == NotificationType.Friendship)
+                                {
+                                    <i class="user friends icon"></i>
+                                }
+                            </div>
+                            <div class="content" style="padding-top: 0 !important;">
+                                <div class="date">
+                                    @GetDate(notification.ReceivedAt)
+                                </div>
+                                <a class="summary" href="@notification.ReferenceUrl">
+                                    @notification.Description
+                                </a>
+                                <div class="meta" style="margin: 0 0 0 0.5rem;">
+                                    <a class="like" @onclick="async () => await MarkAsSeen(notification.Id)">
+                                        @* TODO - add button 'Mark all as seen'*@
+                                        <i class="check square outline icon"></i>Mark as seen
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                    }
+                }
+            </div>
+            @if (MySeenNotifications != null && MySeenNotifications.Count > 0)
+            {
+                <div class="ui horizontal divider">
+                    Already seen
+                </div>
+            }
+            <div class="ui feed">
+                @if (loaded)
+                {
+                    @foreach (var notification in MySeenNotifications)
+                    {
+                        <div class="event">
+                            <div class="label" style="align-self: center !important;">
+                                @if (notification.Type == NotificationType.Friendship)
+                                {
+                                    <i class="user friends icon"></i>
+                                }
+                            </div>
+                            <div class="content" style="padding-top: 0 !important;">
+                                <div class="date">
+                                    @GetDate(notification.ReceivedAt)
+                                </div>
+                                <a class="summary" href="@notification.ReferenceUrl">
+                                    @notification.Description
+                                </a>
+                            </div>
+                        </div>
+                    }
+                }
+            </div>
+        </div>
+    </Authorized>
+    <NotAuthorized>
+        <div class="my-container">
+            <div class="my-sub-container p-2 ">
+                <div style="text-align: center;">
+                    <h3>Log in, to view your profile.</h3>
+                </div>
+            </div>
+        </div>
+    </NotAuthorized>
+</AuthorizeView>
+
+@code {
+    private bool loaded = false;
+
+    private ApplicationUserDTO User { get; set; }
+
+    private ICollection<Notification>? MySeenNotifications { get; set; }
+
+    private ICollection<Notification>? MyNotSeenNotifications { get; set; }
+
+    [CascadingParameter]
+    private Task<AuthenticationState> AuthenticationStateTask { get; set; }
+
+    [Inject]
+    public IApplicationUserService UserService { get; set; }
+
+    [Inject]
+    public INotificationService NotificationService { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        loaded = false;
+
+        var authState = await AuthenticationStateProvider
+            .GetAuthenticationStateAsync();
+
+        if (authState.User.Identity.Name != null)
+        {
+            User = await UserService
+                .GetUserByEmailAsync(authState.User.Identity?.Name);
+            var notifications = await NotificationService
+                .GetMyNotificationsAsync(User.Id);
+            MySeenNotifications = notifications.Where(x => x.MarkedAsSeen).ToArray();
+            MyNotSeenNotifications = notifications.Where(x => x.MarkedAsSeen == false).ToArray();
+
+            loaded = true;
+        }
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender)
+            await JsRuntime.InvokeVoidAsync("openNag");
+    }
+
+    private RenderFragment GetDate(DateTime receivedAt)
+    {
+        var ts = DateTime.Now.Subtract(receivedAt);
+
+        if (ts.TotalMinutes < 1)
+        {
+            return @<span>Just now</span>;
+        }
+        if (ts.TotalMinutes < 2)
+        {
+            return @<span>1 minute ago</span>;
+        }
+        if (ts.TotalHours < 1)
+        {
+            return @<span>@ts.Minutes minutes ago</span>;
+        }
+        if (ts.TotalHours < 2)
+        {
+            return @<span>1 hour ago</span>;
+        }
+        if (ts.TotalDays < 1)
+        {
+            return @<span>@ts.Hours hours ago</span>;
+        }
+        if (ts.TotalDays is >= 1 and < 2)
+        {
+            return @<span>1 day ago</span>;
+        }
+        if (ts.TotalDays is >= 2 and < 3)
+        {
+            return @<span>2 days ago</span>;
+        }
+
+        return @<span>@receivedAt.ToString("dd/MM/yyyy")</span>;
+    }
+
+    private async Task MarkAsSeen(Guid notificationId)
+    {
+        var body = new
+        {
+            NotificationId = notificationId,
+            MarkedAsSeen = true
+        };
+
+        var entity = await NotificationService.MarkAsSeenAsync(body);
+
+        if (entity == null)
+            await JsRuntime.InvokeVoidAsync(
+                "alert",
+                "Something went wrong, we couldn't mark this notification as seen.");
+        else
+            Navigation.NavigateTo("/Notifications", forceLoad: true);
+    }
+
+    private async Task MarkAllAsSeen()
+    {
+        await NotificationService.MarkAllAsSeenAsync(new { UserId = User.Id });
+        
+        Navigation.NavigateTo("/Notifications", forceLoad: true);
+    }
+}

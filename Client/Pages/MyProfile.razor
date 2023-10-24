@@ -55,7 +55,7 @@
                 <i class="users icon"></i>
                 Friends
             </h4>
-            <div class="ui special four stackable link cards">
+            <div class="ui special three stackable link cards">
                 @foreach (var friend in FriendsWithAmount)
                 {
                     <div class="card">
@@ -210,15 +210,16 @@
         if (isRemoved == false)
         {
             await JSRuntime
-                .InvokeVoidAsync("alert",
+                .InvokeVoidAsync("errorToast",
                     "Something went wrong, user has not been removed from your friends.");
         }
         else
         {
             await JSRuntime
-                .InvokeVoidAsync("alert",
+                .InvokeVoidAsync("successToast",
                     "The user was removed from your friendship.");
-            StateHasChanged();
+            await Task.Delay(2500);
+            Navigation.NavigateTo("/MyProfile", forceLoad: true);
         }
     }
 

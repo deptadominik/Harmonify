@@ -1,5 +1,6 @@
 using AutoMapper;
 using Harmonify.Server.Repositories;
+using Harmonify.Shared.Enums;
 using MediatR;
 using Microsoft.AspNetCore.Http.HttpResults;
 
@@ -27,7 +28,8 @@ public class CreateFriendshipCommand: IRequest<Shared.Models.Friendship>
             var entity = new Shared.Models.Friendship
             {
                 MainUserId = request.MainUserId,
-                FriendUserId = request.FriendUserId
+                FriendUserId = request.FriendUserId,
+                Status = FriendshipStatus.Requested
             };
                 
             await _repository.AddFriendshipAsync(entity);
