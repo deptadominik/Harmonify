@@ -46,6 +46,10 @@
       <Content Update="wwwroot\images\logo_without_name.png">
         <CopyToOutputDirectory>Always</CopyToOutputDirectory>
       </Content>
+
+
+
+
     </ItemGroup>
 
 

@@ -1,7 +1,11 @@
 @page "/Profile/{id}"
 @using Harmonify.Shared.Models
-@using Harmonify.Client.Services
+@using Harmonify.Client.Services.ApplicationUser
+@using Harmonify.Client.Services.AvatarImage
+@using Harmonify.Client.Services.Friendship
 @using Harmonify.Client.Services.Notification
+@using Harmonify.Client.Services.Post
+@using Harmonify.Client.Services.PostLike
 @using Harmonify.Shared.DTO
 @using Harmonify.Shared.Enums
 @inject AuthenticationStateProvider AuthenticationStateProvider
@@ -70,10 +74,14 @@
                     </div>
                     <div class="ui buttons">
                         <button class="ui green button"
-                                @onclick="async () => await AcceptFriend(UserProfile.Id)">Accept</button>
-                      <div class="or"></div>
+                                @onclick="async () => await AcceptFriend(UserProfile.Id)">
+                            Accept
+                        </button>
+                        <div class="or"></div>
                         <button class="ui red button"
-                                @onclick="async () => await DeclineFriend(UserProfile.Id)">Decline</button>
+                                @onclick="async () => await DeclineFriend(UserProfile.Id)">
+                            Decline
+                        </button>
                     </div>
                 }
                 <div class="content">
@@ -151,6 +159,111 @@
                 <i class="slideshare icon"></i>
                 Harms
             </h4>
+            <div class="ui feed">
+                @if (loaded)
+                {
+                    @foreach (var post in Harms)
+                    {
+                        <div class="event">
+                            <div class="label" style="align-self: center;">
+                                @* TODO - get UserDTO in order to display avatar*@
+                                <img src="@MyUserData.AvatarSource">
+                            </div>
+                            <div class="content">
+                                <div class="summary">
+                                    <a>@post.Author.FirstName @post.Author.LastName</a> posted a harm
+                                    @if (post.EditedAt == null)
+                                    {
+                                        <div class="date">
+                                            On @post.PostedAt
+                                        </div>
+                                    }
+                                    else
+                                    {
+                                        <div class="date">
+                                            Edited at @post.EditedAt
+                                        </div>
+                                    }
+                                    @if (post.AuthorId == MyUserData.Id)
+                                    {
+                                        <div class="ui text menu"
+                                             style="display: inline-block; margin-left: 1%;
+                                                                         min-height: 0; margin-bottom: 0; margin-top: 0;">
+                                            <div class="ui dropdown item" id="harm-menu">
+                                                <i class="ellipsis horizontal icon"></i>
+                                                <div class="menu">
+                                                    <div class="item">Applications</div>
+                                                    <div class="item">International Students</div>
+                                                    <div class="item">Scholarships</div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    }
+                                </div>
+                                <div class="extra text">
+                                    @post.Content
+                                </div>
+                                <div class="meta">
+                                    @if (post.Likes.Count == 0)
+                                    {
+                                        <a class="like" @onclick="async () => await LikePost(post.Id, post.AuthorId)">
+                                            <i class="like icon"></i>
+                                            <span>Be the first person to like this post</span>
+                                        </a>
+                                    }
+                                    else
+                                    {
+                                        @if (post.Likes.Count == 1 && post.Likes.All(x => x.UserId != MyUserData.Id))
+                                        {
+                                            var userLike = post.Likes.First().User;
+                                            <a class="like" @onclick="async () => await LikePost(post.Id, post.AuthorId)">
+                                                <i class="like icon"></i>
+                                                <span>@userLike.FirstName @userLike.LastName likes it</span>
+                                            </a>
+                                        }
+                                        else if (post.Likes.Count > 1 && post.Likes.All(x => x.UserId != MyUserData.Id))
+                                        {
+                                            <a class="like" @onclick="async () => await LikePost(post.Id, post.AuthorId)">
+                                                <i class="like icon"></i>
+                                                <span>@post.Likes.Count likes</span>
+                                            </a>
+                                        }
+                                        else if (post.Likes.Count > 2)
+                                        {
+                                            var count = post.Likes.Count - 1;
+                                            <a class="like" @onclick="async () => await UnlikePost(post.Likes.First(x => x.UserId == MyUserData.Id).Id)">
+                                                <i class="like icon"></i>
+                                                <span>You and @count other people like it</span>
+                                            </a>
+                                        }
+                                        else if (post.Likes.Count == 2)
+                                        {
+                                            var userLike = post.Likes.First(x => x.UserId != MyUserData.Id).User;
+                                            <a class="like" @onclick="async () => await UnlikePost(post.Likes.First(x => x.UserId == MyUserData.Id).Id)">
+                                                <i class="like icon"></i>
+                                                <span>You and @userLike.FirstName @userLike.LastName like it</span>
+                                            </a>
+                                        }
+                                        else
+                                        {
+                                            <a class="like" @onclick="async () => await UnlikePost(post.Likes.First(x => x.UserId == MyUserData.Id).Id)">
+                                                <i class="like icon"></i>
+                                                <span>You like it</span>
+                                            </a>
+                                        }
+                                    }
+                                </div>
+                            </div>
+                        </div>
+                    }
+                }
+                else
+                {
+                    <div class="ui active dimmer">
+                        <div class="ui text large loader">Loading</div>
+                    </div>
+                }
+            </div>
         </div>
     </Authorized>
     <NotAuthorized>
@@ -180,6 +293,8 @@
 
     private ApplicationUserDTO? UserProfile { get; set; }
 
+    private ICollection<Post> Harms { get; set; }
+
     private AvatarImage? Avatar { get; set; }
 
     private Friendship? Friendship { get; set; }
@@ -196,6 +311,13 @@
     [Inject]
     public INotificationService NotificationService { get; set; }
 
+    [Inject]
+    public IPostService PostService { get; set; }
+
+    [Inject]
+    public IPostLikeService PostLikeService { get; set; }
+
+
     protected override async Task OnInitializedAsync()
     {
         loaded = false;
@@ -210,6 +332,7 @@
             if (MyUserData.Id == Id)
                 Navigation.NavigateTo("/MyProfile", forceLoad: true);
 
+    //TODO fix error while parsing empty response for UserProfile which doesn't exist anymore
             UserProfile = await UserService
                 .GetUserByIdAsync(Id);
             Friendship = await FriendshipService
@@ -233,6 +356,8 @@
                     .InvokeVoidAsync("changeSrcUnknown");
 
             await RenderFriendsImages();
+
+            Harms = await PostService.GetUserPostsAsync(UserProfile.Id);
 
             await JSRuntime
                 .InvokeVoidAsync("deleteUser");
@@ -427,7 +552,7 @@
 
         var friendship = await FriendshipService
             .UpdateFriendshipAsync(body);
-        
+
         if (friendship == null)
         {
             await JSRuntime.InvokeVoidAsync(
@@ -445,9 +570,9 @@
                 ReferenceUrl = $"/Profile/{MyUserData.Id}",
                 UserId = friendWhichRequestedId
             };
-        
+
             await NotificationService.CreateAsync(notificationBody);
-            
+
             await JSRuntime.InvokeVoidAsync(
                 "successToast",
                 "Invitation was accepted successfully.");
@@ -455,7 +580,7 @@
             NavigateToFriendProfile(Id);
         }
     }
-    
+
     private async Task DeclineFriend(string friendWhichRequestedId)
     {
         var body = new
@@ -467,7 +592,7 @@
 
         var friendship = await FriendshipService
             .UpdateFriendshipAsync(body);
-        
+
         if (friendship == null)
         {
             await JSRuntime.InvokeVoidAsync(
@@ -485,9 +610,9 @@
                 ReferenceUrl = $"/Profile/{MyUserData.Id}",
                 UserId = friendWhichRequestedId
             };
-        
+
             await NotificationService.CreateAsync(notificationBody);
-            
+
             await JSRuntime.InvokeVoidAsync(
                 "successToast",
                 "Invitation was declined successfully.");
@@ -506,4 +631,56 @@
         friendCounter++;
         return null;
     }
+
+    //TODO move methods below to shared file
+    private async Task LikePost(Guid postId, string postOwnerId)
+    {
+        var body = new
+        {
+            Id = Guid.NewGuid(),
+            PostId = postId,
+            UserId = MyUserData.Id
+        };
+
+        var entity = await PostLikeService.CreateAsync(body);
+
+        if (entity == null)
+            await JSRuntime.InvokeVoidAsync(
+                "errorToast",
+                "Something went wrong, we couldn't like this post.");
+        else
+        {
+            if (postOwnerId != MyUserData.Id)
+            {
+                var notificationBody = new
+                {
+                    Type = NotificationType.PostLike,
+                    Description = $"{MyUserData.FullName} liked your post.",
+                    MarkedAsSeen = false,
+                    ReceivedAt = DateTime.Now,
+                    ReferenceUrl = $"/Post/{postId}",
+                    UserId = postOwnerId
+                };
+
+                await NotificationService.CreateAsync(notificationBody);
+            }
+
+            Navigation.NavigateTo($"/Profile/{Id}", forceLoad: true);
+        }
+    }
+
+    private async Task UnlikePost(Guid postLikeId)
+    {
+        var wasRemoved = await PostLikeService.DeletePostLikeAsync(postLikeId);
+
+        if (!wasRemoved)
+            await JSRuntime.InvokeVoidAsync(
+                "errorToast",
+                "Something went wrong, we couldn't unlike this post.");
+        else
+        {
+            Navigation.NavigateTo($"/Profile/{Id}", forceLoad: true);
+        }
+    }
+
 }

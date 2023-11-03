@@ -1,15 +1,14 @@
 using Harmonify.Shared.DTO;
-using Harmonify.Shared.Models;
 
-namespace Harmonify.Client.Services;
+namespace Harmonify.Client.Services.Friendship;
 
 public interface IFriendshipService
 {
-    Task<Friendship?> GetAsync(string userId, string friendUserId);
+    Task<Harmonify.Shared.Models.Friendship?> GetAsync(string userId, string friendUserId);
 
-    Task<ICollection<Friendship>> GetPendingFriendshipRequestsAsync(string userId);
+    Task<ICollection<Harmonify.Shared.Models.Friendship>> GetPendingFriendshipRequestsAsync(string userId);
     
-    Task<ICollection<Friendship>> GetAsync(string userId);
+    Task<ICollection<Harmonify.Shared.Models.Friendship>> GetAsync(string userId);
 
     Task<ICollection<ApplicationUserDTO>> GetMyFriendsWithAvatarAsync(string userId);
     
@@ -17,7 +16,7 @@ public interface IFriendshipService
     
     Task<Guid?> CreateFriendshipAsync(object body);
 
-    Task<Friendship?> UpdateFriendshipAsync(object body);
+    Task<Harmonify.Shared.Models.Friendship?> UpdateFriendshipAsync(object body);
     
     Task<bool> DeleteFriendshipAsync(string userId, string friendId);
 }

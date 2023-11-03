@@ -1,9 +1,8 @@
 using System.Net;
 using System.Net.Http.Json;
 using System.Text.Json;
-using Harmonify.Shared.Models;
 
-namespace Harmonify.Client.Services;
+namespace Harmonify.Client.Services.AvatarImage;
 
 public class AvatarImageService : IAvatarImageService
 {
@@ -14,7 +13,7 @@ public class AvatarImageService : IAvatarImageService
         this.httpClient = httpClient;
     }
 
-    public async Task<AvatarImage?> GetAvatarAsync(string userId)
+    public async Task<Harmonify.Shared.Models.AvatarImage?> GetAvatarAsync(string userId)
     {
         var response = await httpClient
             .GetAsync($"AvatarImage?userId={userId}");
@@ -24,7 +23,7 @@ public class AvatarImageService : IAvatarImageService
 
         var content = await response.Content.ReadAsStringAsync();
 
-        var avatar = JsonSerializer.Deserialize<AvatarImage>(content,
+        var avatar = JsonSerializer.Deserialize<Harmonify.Shared.Models.AvatarImage>(content,
             new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
 
         return avatar;

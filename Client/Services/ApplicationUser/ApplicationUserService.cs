@@ -1,11 +1,9 @@
 using System.Net;
 using System.Net.Http.Json;
 using System.Text.Json;
-using System.Text.Json.Serialization;
 using Harmonify.Shared.DTO;
-using Harmonify.Shared.Models;
 
-namespace Harmonify.Client.Services;
+namespace Harmonify.Client.Services.ApplicationUser;
 
 public class ApplicationUserService : IApplicationUserService
 {
@@ -43,9 +41,9 @@ public class ApplicationUserService : IApplicationUserService
                ?? Array.Empty<ApplicationUserDTO>();
     }
     
-    public async Task<ApplicationUser?> GetUserWithFriendsByEmailAsync(string email)
+    public async Task<Harmonify.Shared.Models.ApplicationUser?> GetUserWithFriendsByEmailAsync(string email)
     {
-        return await httpClient.GetFromJsonAsync<ApplicationUser>(
+        return await httpClient.GetFromJsonAsync<Harmonify.Shared.Models.ApplicationUser>(
             $"ApplicationUser/with-friends?email={email}");
     }
 }

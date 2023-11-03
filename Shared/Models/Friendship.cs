@@ -6,11 +6,11 @@ public class Friendship
 {
     public string MainUserId { get; set; }
 
-    public virtual ApplicationUser MainUser { get; set; }
+    public ApplicationUser MainUser { get; set; }
 
     public string FriendUserId { get; set; }
 
-    public virtual ApplicationUser FriendUser { get; set; }
+    public ApplicationUser FriendUser { get; set; }
     
     public FriendshipStatus Status { get; set; }
 }

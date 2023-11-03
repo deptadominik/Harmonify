@@ -1,6 +1,6 @@
 @page "/Notifications"
 @using Harmonify.Shared.DTO
-@using Harmonify.Client.Services
+@using Harmonify.Client.Services.ApplicationUser
 @using Harmonify.Client.Services.Notification
 @using Harmonify.Shared.Enums
 @using Harmonify.Shared.Models
@@ -39,6 +39,10 @@
                                 {
                                     <i class="user friends icon"></i>
                                 }
+                                else if (notification.Type == NotificationType.PostLike)
+                                {
+                                    <i class="heart icon"></i>
+                                }
                             </div>
                             <div class="content" style="padding-top: 0 !important;">
                                 <div class="date">
@@ -75,6 +79,10 @@
                                 {
                                     <i class="user friends icon"></i>
                                 }
+                                else if (notification.Type == NotificationType.PostLike)
+                                {
+                                    <i class="heart icon"></i>
+                                }
                             </div>
                             <div class="content" style="padding-top: 0 !important;">
                                 <div class="date">
@@ -94,7 +102,7 @@
         <div class="my-container">
             <div class="my-sub-container p-2 ">
                 <div style="text-align: center;">
-                    <h3>Log in, to view your profile.</h3>
+                    <h3>Log in, to see your notifications.</h3>
                 </div>
             </div>
         </div>
@@ -202,7 +210,8 @@
     private async Task MarkAllAsSeen()
     {
         await NotificationService.MarkAllAsSeenAsync(new { UserId = User.Id });
-        
+
         Navigation.NavigateTo("/Notifications", forceLoad: true);
     }
+
 }

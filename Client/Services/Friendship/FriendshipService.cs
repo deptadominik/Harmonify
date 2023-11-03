@@ -1,14 +1,10 @@
 using System.Net;
 using System.Net.Http.Json;
-using System.Text;
 using System.Text.Json;
 using Harmonify.Shared.DTO;
-using Harmonify.Shared.Enums;
-using Harmonify.Shared.Models;
-using Newtonsoft.Json;
 using JsonSerializer = System.Text.Json.JsonSerializer;
 
-namespace Harmonify.Client.Services;
+namespace Harmonify.Client.Services.Friendship;
 
 public class FriendshipService : IFriendshipService
 {
@@ -19,37 +15,37 @@ public class FriendshipService : IFriendshipService
         this.httpClient = httpClient;
     }
 
-    public async Task<ICollection<Friendship>> GetAsync(string userId)
+    public async Task<ICollection<Harmonify.Shared.Models.Friendship>> GetAsync(string userId)
     {
         var response = await httpClient
             .GetAsync($"Friendship?userId={userId}");
 
         if (response.StatusCode == HttpStatusCode.NoContent)
-            return Array.Empty<Friendship>();
+            return Array.Empty<Harmonify.Shared.Models.Friendship>();
 
         var content = await response.Content.ReadAsStringAsync();
 
-        return JsonSerializer.Deserialize<ICollection<Friendship>>(content,
+        return JsonSerializer.Deserialize<ICollection<Harmonify.Shared.Models.Friendship>>(content,
                    new JsonSerializerOptions { PropertyNameCaseInsensitive = true })
-               ?? Array.Empty<Friendship>();
+               ?? Array.Empty<Harmonify.Shared.Models.Friendship>();
     }
     
-    public async Task<ICollection<Friendship>> GetPendingFriendshipRequestsAsync(string userId)
+    public async Task<ICollection<Harmonify.Shared.Models.Friendship>> GetPendingFriendshipRequestsAsync(string userId)
     {
         var response = await httpClient
             .GetAsync($"Friendship/pending?userId={userId}");
 
         if (response.StatusCode == HttpStatusCode.NoContent)
-            return Array.Empty<Friendship>();
+            return Array.Empty<Harmonify.Shared.Models.Friendship>();
 
         var content = await response.Content.ReadAsStringAsync();
 
-        return JsonSerializer.Deserialize<ICollection<Friendship>>(content,
+        return JsonSerializer.Deserialize<ICollection<Harmonify.Shared.Models.Friendship>>(content,
                    new JsonSerializerOptions { PropertyNameCaseInsensitive = true })
-               ?? Array.Empty<Friendship>();
+               ?? Array.Empty<Harmonify.Shared.Models.Friendship>();
     }
     
-    public async Task<Friendship?> GetAsync(string userId, string friendUserId)
+    public async Task<Harmonify.Shared.Models.Friendship?> GetAsync(string userId, string friendUserId)
     {
         var response = await httpClient
             .GetAsync($"Friendship/status/{userId}/{friendUserId}");
@@ -59,7 +55,7 @@ public class FriendshipService : IFriendshipService
 
         var content = await response.Content.ReadAsStringAsync();
 
-        return JsonSerializer.Deserialize<Friendship?>(content,
+        return JsonSerializer.Deserialize<Harmonify.Shared.Models.Friendship?>(content,
                    new JsonSerializerOptions { PropertyNameCaseInsensitive = true })
                ?? null;
     }
@@ -106,7 +102,7 @@ public class FriendshipService : IFriendshipService
         };
     }
     
-    public async Task<Friendship?> UpdateFriendshipAsync(object body)
+    public async Task<Harmonify.Shared.Models.Friendship?> UpdateFriendshipAsync(object body)
     {
         using var response = await httpClient.PatchAsJsonAsync(
             "/Friendship/update", body);
@@ -114,7 +110,7 @@ public class FriendshipService : IFriendshipService
         return response.StatusCode switch
         {
             HttpStatusCode.BadRequest => null,
-            HttpStatusCode.OK => JsonSerializer.Deserialize<Friendship?>(await response
+            HttpStatusCode.OK => JsonSerializer.Deserialize<Harmonify.Shared.Models.Friendship?>(await response
                     .Content.ReadAsStringAsync(),
                 new JsonSerializerOptions { PropertyNameCaseInsensitive = true }),
             _ => null

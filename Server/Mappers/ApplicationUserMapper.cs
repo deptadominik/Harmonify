@@ -28,7 +28,7 @@ public class ApplicationUserMapper : Profile
             .ForMember(d => d.ProfileUrl,
                 m => m.MapFrom(s => $"/Profile/{s.Id}"))
             .ForMember(d => d.JoinedOn,
-                m => m.MapFrom(s => s.JoinedOn.ToString("dd/MM/yyyy")))
+                m => m.MapFrom(s => s.JoinedOn.ToString("yyyy")))
             .ForMember(d => d.AvatarContent,
                 m => m.MapFrom(s => s.Avatar != null ? s.Avatar.Content : null))
             .ForMember(d => d.AvatarFileName,

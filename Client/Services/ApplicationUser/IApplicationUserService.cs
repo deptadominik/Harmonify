@@ -1,7 +1,6 @@
 using Harmonify.Shared.DTO;
-using Harmonify.Shared.Models;
 
-namespace Harmonify.Client.Services;
+namespace Harmonify.Client.Services.ApplicationUser;
 
 public interface IApplicationUserService
 {

@@ -47,15 +47,25 @@ public class ApplicationUser : IdentityUser
     /// <summary>
     /// User's notifications
     /// </summary>
-    public virtual ICollection<Notification> Notifications { get; set; }
+    public ICollection<Notification> Notifications { get; set; }
+    
+    /// <summary>
+    /// User's posts
+    /// </summary>
+    public ICollection<Post> Posts { get; set; }
+    
+    /// <summary>
+    /// User's comments
+    /// </summary>
+    public ICollection<Comment> Comments { get; set; }
     
     /// <summary>
     /// Friends, which user invited
     /// </summary>
-    public virtual ICollection<Friendship> MainFriends { get; set; }
+    public ICollection<Friendship> MainFriends { get; set; }
     
     /// <summary>
     /// Users I am friends of (users, which invited me)
     /// </summary>
-    public virtual ICollection<Friendship> Friends { get; set; }
+    public ICollection<Friendship> Friends { get; set; }
 }

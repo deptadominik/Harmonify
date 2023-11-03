@@ -1,7 +1,13 @@
 @page "/MyProfile"
 @using Harmonify.Shared.Models
-@using Harmonify.Client.Services
 @using Harmonify.Shared.DTO
+@using Harmonify.Client.Services.ApplicationUser
+@using Harmonify.Client.Services.AvatarImage
+@using Harmonify.Client.Services.Friendship
+@using Harmonify.Client.Services.Notification
+@using Harmonify.Client.Services.Post
+@using Harmonify.Client.Services.PostLike
+@using Harmonify.Shared.Enums
 @inject AuthenticationStateProvider AuthenticationStateProvider
 @inject IJSRuntime JSRuntime;
 @inject NavigationManager Navigation
@@ -47,7 +53,7 @@
                 <div class="extra content">
                     <a>
                         <i class="user icon"></i>
-                        @Friends.Count friends
+                        @Friends.Count @(Friends.Count == 1 ? "friend" : "friends")
                     </a>
                 </div>
             </div>
@@ -101,6 +107,139 @@
                 <i class="slideshare icon"></i>
                 Harms
             </h4>
+            <div class="ui feed">
+                @if (loaded)
+                {
+                    @if (showEditTextPost)
+                    {
+                        <form class="ui reply form">
+                            <div class="field">
+                                <textarea @oninput="HandleEditOnChange" value="@TextEditAreaValue"></textarea>
+                            </div>
+                            <div @onclick="async () => await UpdatePost()"
+                                 class="ui blue labeled submit icon button"
+                                 style="padding-left: 2.5em!important;
+                    padding-right: 1em!important;">
+                                <i class="icon edit"></i>Save harm
+                            </div>
+                            <div @onclick="() => showEditTextPost = false"
+                                 class="ui red labeled submit icon button"
+                                 style="padding-left: 2.5em!important;
+                    padding-right: 1em!important;">
+                                <i class="icon window close outline"></i>Discard
+                            </div>
+                            <div class="ui dimmer" id="harm-dimmer">
+                                <div class="content">
+                                    <h2 class="ui inverted icon header">
+                                        <i class="check icon"></i>
+                                        Harm updated!
+                                    </h2>
+                                </div>
+                            </div>
+                        </form>
+                    }
+                    @foreach (var post in MyHarms)
+                    {
+                        <div class="event">
+                            <div class="label" style="align-self: center;">
+                                @* TODO - get UserDTO in order to display avatar*@
+                                <img src="@User.AvatarSource">
+                            </div>
+                            <div class="content">
+                                <div class="summary">
+                                    <a>@post.Author.FirstName @post.Author.LastName</a> posted a harm
+                                    @if (post.EditedAt == null)
+                                    {
+                                        <div class="date">
+                                            On @post.PostedAt
+                                        </div>
+                                    }
+                                    else
+                                    {
+                                        <div class="date">
+                                            Edited at @post.EditedAt
+                                        </div>
+                                    }
+                                    @if (post.AuthorId == User.Id)
+                                    {
+                                        <div class="ui text menu"
+                                             style="display: inline-block; margin-left: 1%;
+                                                min-height: 0; margin-bottom: 0; margin-top: 0;">
+                                            <div class="ui dropdown item" id="harm-menu-@index">
+                                                <i class="ellipsis horizontal icon"></i>
+                                                <div class="menu">
+                                                    <div class="item" @onclick="() => ShowEditTextPost(post)">Edit</div>
+                                                    <div class="item" @onclick="async () => await DeletePost(post.Id)">Delete</div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        @IncrementDropdown()
+                                    }
+                                </div>
+                                <div class="extra text">
+                                    @post.Content
+                                </div>
+                                <div class="meta">
+                                    @if (post.Likes.Count == 0)
+                                    {
+                                        <a class="like" @onclick="async () => await LikePost(post.Id, post.AuthorId)">
+                                            <i class="like icon"></i>
+                                            <span>Be the first person to like this post</span>
+                                        </a>
+                                    }
+                                    else
+                                    {
+                                        @if (post.Likes.Count == 1 && post.Likes.All(x => x.UserId != User.Id))
+                                        {
+                                            var userLike = post.Likes.First().User;
+                                            <a class="like" @onclick="async () => await LikePost(post.Id, post.AuthorId)">
+                                                <i class="like icon"></i>
+                                                <span>@userLike.FirstName @userLike.LastName likes it</span>
+                                            </a>
+                                        }
+                                        else if (post.Likes.Count > 1 && post.Likes.All(x => x.UserId != User.Id))
+                                        {
+                                            <a class="like" @onclick="async () => await LikePost(post.Id, post.AuthorId)">
+                                                <i class="like icon"></i>
+                                                <span>@post.Likes.Count likes</span>
+                                            </a>
+                                        }
+                                        else if (post.Likes.Count > 2)
+                                        {
+                                            var count = post.Likes.Count - 1;
+                                            <a class="like" @onclick="async () => await UnlikePost(post.Likes.First(x => x.UserId == User.Id).Id)">
+                                                <i class="like icon"></i>
+                                                <span>You and @count other people like it</span>
+                                            </a>
+                                        }
+                                        else if (post.Likes.Count == 2)
+                                        {
+                                            var userLike = post.Likes.First(x => x.UserId != User.Id).User;
+                                            <a class="like" @onclick="async () => await UnlikePost(post.Likes.First(x => x.UserId == User.Id).Id)">
+                                                <i class="like icon"></i>
+                                                <span>You and @userLike.FirstName @userLike.LastName like it</span>
+                                            </a>
+                                        }
+                                        else
+                                        {
+                                            <a class="like" @onclick="async () => await UnlikePost(post.Likes.First(x => x.UserId == User.Id).Id)">
+                                                <i class="like icon"></i>
+                                                <span>You like it</span>
+                                            </a>
+                                        }
+                                    }
+                                </div>
+                            </div>
+                        </div>
+                    }
+                }
+                else
+                {
+                    <div class="ui active dimmer">
+                        <div class="ui text large loader">Loading</div>
+                    </div>
+                }
+            </div>
         </div>
     </Authorized>
     <NotAuthorized>
@@ -115,16 +254,27 @@
 </AuthorizeView>
 
 @code {
-    private bool loaded;
+    private bool loaded = false;
+
+    private int index = 0;
+
     private int friendCounter = 0;
+    
+    private bool showEditTextPost = false;
+
+    private Post? postBeingEdited = null;
 
     private List<ApplicationUserDTO> Friends { get; set; } = new();
 
     private List<Tuple<ApplicationUserDTO, int>> FriendsWithAmount { get; set; } = new();
 
+    private ICollection<Post> MyHarms { get; set; }
+
     private ApplicationUserDTO? User { get; set; }
 
     private AvatarImage? Avatar { get; set; }
+    
+    private string TextEditAreaValue { get; set; }
 
     [Inject]
     public IApplicationUserService UserService { get; set; }
@@ -134,6 +284,15 @@
 
     [Inject]
     public IFriendshipService FriendshipService { get; set; }
+
+    [Inject]
+    public IPostService PostService { get; set; }
+
+    [Inject]
+    public IPostLikeService PostLikeService { get; set; }
+
+    [Inject]
+    public INotificationService NotificationService { get; set; }
 
     protected override async Task OnInitializedAsync()
     {
@@ -162,11 +321,24 @@
 
             await RenderFriendsImages();
 
+            if (User != null)
+                MyHarms = await PostService.GetUserPostsAsync(User.Id);
+
             await JSRuntime
                 .InvokeVoidAsync("deleteUser");
         }
 
         loaded = true;
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender)
+        {
+            for (int i = 0; i < index; i++)
+                await JSRuntime
+                    .InvokeVoidAsync("dropdown", $"#harm-menu-{i}");
+        }
     }
 
     private void GoToAvatarCrop()
@@ -232,5 +404,124 @@
     {
         friendCounter++;
         return null;
+    }
+
+    private object? IncrementDropdown()
+    {
+        index++;
+        return null;
+    }
+
+    //TODO move methods below to shared file
+    private async Task LikePost(Guid postId, string postOwnerId)
+    {
+        var body = new
+        {
+            Id = Guid.NewGuid(),
+            PostId = postId,
+            UserId = User.Id
+        };
+
+        var entity = await PostLikeService.CreateAsync(body);
+
+        if (entity == null)
+            await JSRuntime.InvokeVoidAsync(
+                "errorToast",
+                "Something went wrong, we couldn't like this post.");
+        else
+        {
+            if (postOwnerId != User.Id)
+            {
+                var notificationBody = new
+                {
+                    Type = NotificationType.PostLike,
+                    Description = $"{User.FullName} liked your post.",
+                    MarkedAsSeen = false,
+                    ReceivedAt = DateTime.Now,
+                    ReferenceUrl = $"/Post/{postId}",
+                    UserId = postOwnerId
+                };
+
+                await NotificationService.CreateAsync(notificationBody);
+            }
+
+            Navigation.NavigateTo("/MyProfile", forceLoad: true);
+        }
+    }
+
+    private async Task UnlikePost(Guid postLikeId)
+    {
+        var wasRemoved = await PostLikeService.DeletePostLikeAsync(postLikeId);
+
+        if (!wasRemoved)
+            await JSRuntime.InvokeVoidAsync(
+                "errorToast",
+                "Something went wrong, we couldn't unlike this post.");
+        else
+        {
+            Navigation.NavigateTo("/MyProfile", forceLoad: true);
+        }
+    }
+    
+    private async Task UpdatePost()
+    {
+        if (!string.IsNullOrWhiteSpace(TextEditAreaValue))
+        {
+            var body = new
+            {
+                PostId = postBeingEdited!.Id,
+                Content = TextEditAreaValue,
+                EditedAt = DateTime.Now
+            };
+
+            var entity = await PostService.UpdateAsync(body);
+            
+            if (entity == null)
+                await JSRuntime.InvokeVoidAsync(
+                    "errorToast",
+                    "Something went wrong, we couldn't update your harm.");
+            else
+            {
+                await JSRuntime.InvokeVoidAsync("toggleDimmer");
+                MyHarms = await PostService.GetUserPostsAsync(User.Id);
+                StateHasChanged();
+                await Task.Delay(1000);
+                showEditTextPost = false;
+            }
+        }
+        else
+            await JSRuntime.InvokeVoidAsync(
+                "errorToast",
+                "You can't save an empty harm!");
+    }
+    
+    private async Task DeletePost(Guid postId)
+    {
+        var wasRemoved = await PostService.DeleteAsync(postId);
+        
+        if (!wasRemoved)
+            await JSRuntime.InvokeVoidAsync(
+                "errorToast",
+                "Something went wrong, we couldn't delete this post.");
+        else
+        {
+            await JSRuntime.InvokeVoidAsync(
+                "successToast",
+                "Your harm was deleted.");
+            MyHarms = await PostService.GetUserPostsAsync(User.Id);
+            StateHasChanged();
+        }
+    }
+    
+    private void HandleEditOnChange(ChangeEventArgs args)
+    {
+        TextEditAreaValue = args.Value.ToString();
+    }
+
+    private void ShowEditTextPost(Post post)
+    {
+        postBeingEdited = post;
+        TextEditAreaValue = post.Content!;
+        showEditTextPost = true;
     }
 }

@@ -302,6 +302,65 @@ namespace Harmonify.Server.Data.Migrations
                     b.ToTable("Avatar", (string)null);
                 });
 
+            modelBuilder.Entity("Harmonify.Shared.Models.Comment", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("AuthorId")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Content")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime>("EditedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<Guid?>("ParentCommentId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<Guid>("PostId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime>("PostedAt")
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("AuthorId");
+
+                    b.HasIndex("ParentCommentId");
+
+                    b.HasIndex("PostId");
+
+                    b.ToTable("Comment", (string)null);
+                });
+
+            modelBuilder.Entity("Harmonify.Shared.Models.CommentLike", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("TEXT");
+
+                    b.Property<Guid>("CommentId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("UserId")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CommentId");
+
+                    b.HasIndex("UserId");
+
+                    b.ToTable("CommentLike", (string)null);
+                });
+
             modelBuilder.Entity("Harmonify.Shared.Models.Friendship", b =>
                 {
                     b.Property<string>("MainUserId")
@@ -352,6 +411,77 @@ namespace Harmonify.Server.Data.Migrations
                     b.HasIndex("UserId");
 
                     b.ToTable("Notification", (string)null);
+                });
+
+            modelBuilder.Entity("Harmonify.Shared.Models.Post", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("AuthorId")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Content")
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime?>("EditedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime>("PostedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("Type")
+                        .HasColumnType("INTEGER");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("AuthorId");
+
+                    b.ToTable("Post", (string)null);
+                });
+
+            modelBuilder.Entity("Harmonify.Shared.Models.PostImage", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("TEXT");
+
+                    b.Property<Guid>("PostId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Url")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("PostId");
+
+                    b.ToTable("PostImage", (string)null);
+                });
+
+            modelBuilder.Entity("Harmonify.Shared.Models.PostLike", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("TEXT");
+
+                    b.Property<Guid>("PostId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("UserId")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("PostId");
+
+                    b.HasIndex("UserId");
+
+                    b.ToTable("PostLike", (string)null);
                 });
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRole", b =>
@@ -507,6 +637,50 @@ namespace Harmonify.Server.Data.Migrations
                     b.Navigation("User");
                 });
 
+            modelBuilder.Entity("Harmonify.Shared.Models.Comment", b =>
+                {
+                    b.HasOne("Harmonify.Shared.Models.ApplicationUser", "Author")
+                        .WithMany("Comments")
+                        .HasForeignKey("AuthorId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Harmonify.Shared.Models.Comment", "ParentComment")
+                        .WithMany("Replies")
+                        .HasForeignKey("ParentCommentId");
+
+                    b.HasOne("Harmonify.Shared.Models.Post", "Post")
+                        .WithMany("Comments")
+                        .HasForeignKey("PostId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Author");
+
+                    b.Navigation("ParentComment");
+
+                    b.Navigation("Post");
+                });
+
+            modelBuilder.Entity("Harmonify.Shared.Models.CommentLike", b =>
+                {
+                    b.HasOne("Harmonify.Shared.Models.Comment", "Comment")
+                        .WithMany("Likes")
+                        .HasForeignKey("CommentId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Harmonify.Shared.Models.ApplicationUser", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Comment");
+
+                    b.Navigation("User");
+                });
+
             modelBuilder.Entity("Harmonify.Shared.Models.Friendship", b =>
                 {
                     b.HasOne("Harmonify.Shared.Models.ApplicationUser", "FriendUser")
@@ -533,6 +707,47 @@ namespace Harmonify.Server.Data.Migrations
                         .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
+
+                    b.Navigation("User");
+                });
+
+            modelBuilder.Entity("Harmonify.Shared.Models.Post", b =>
+                {
+                    b.HasOne("Harmonify.Shared.Models.ApplicationUser", "Author")
+                        .WithMany("Posts")
+                        .HasForeignKey("AuthorId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Author");
+                });
+
+            modelBuilder.Entity("Harmonify.Shared.Models.PostImage", b =>
+                {
+                    b.HasOne("Harmonify.Shared.Models.Post", "Post")
+                        .WithMany("Images")
+                        .HasForeignKey("PostId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Post");
+                });
+
+            modelBuilder.Entity("Harmonify.Shared.Models.PostLike", b =>
+                {
+                    b.HasOne("Harmonify.Shared.Models.Post", "Post")
+                        .WithMany("Likes")
+                        .HasForeignKey("PostId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Harmonify.Shared.Models.ApplicationUser", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Post");
 
                     b.Navigation("User");
                 });
@@ -595,11 +810,31 @@ namespace Harmonify.Server.Data.Migrations
 
                     b.Navigation("Avatar");
 
+                    b.Navigation("Comments");
+
                     b.Navigation("Friends");
 
                     b.Navigation("MainFriends");
 
                     b.Navigation("Notifications");
+
+                    b.Navigation("Posts");
+                });
+
+            modelBuilder.Entity("Harmonify.Shared.Models.Comment", b =>
+                {
+                    b.Navigation("Likes");
+
+                    b.Navigation("Replies");
+                });
+
+            modelBuilder.Entity("Harmonify.Shared.Models.Post", b =>
+                {
+                    b.Navigation("Comments");
+
+                    b.Navigation("Images");
+
+                    b.Navigation("Likes");
                 });
 #pragma warning restore 612, 618
         }

@@ -1,10 +1,8 @@
-using Harmonify.Shared.Models;
-
-namespace Harmonify.Client.Services;
+namespace Harmonify.Client.Services.AvatarImage;
 
 public interface IAvatarImageService
 {
-    Task<AvatarImage?> GetAvatarAsync(string userId);
+    Task<Harmonify.Shared.Models.AvatarImage?> GetAvatarAsync(string userId);
     
     Task<Guid?> AddAvatarAsync(object body);
     

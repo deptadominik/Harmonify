@@ -2,8 +2,12 @@ using Microsoft.AspNetCore.Components.Web;
 using Microsoft.AspNetCore.Components.WebAssembly.Authentication;
 using Microsoft.AspNetCore.Components.WebAssembly.Hosting;
 using Harmonify.Client;
-using Harmonify.Client.Services;
+using Harmonify.Client.Services.ApplicationUser;
+using Harmonify.Client.Services.AvatarImage;
+using Harmonify.Client.Services.Friendship;
 using Harmonify.Client.Services.Notification;
+using Harmonify.Client.Services.Post;
+using Harmonify.Client.Services.PostLike;
 
 var builder = WebAssemblyHostBuilder.CreateDefault(args);
 builder.RootComponents.Add<App>("#app");
@@ -20,6 +24,8 @@ builder.Services.AddScoped<IApplicationUserService, ApplicationUserService>();
 builder.Services.AddScoped<IAvatarImageService, AvatarImageService>();
 builder.Services.AddScoped<IFriendshipService, FriendshipService>();
 builder.Services.AddScoped<INotificationService, NotificationService>();
+builder.Services.AddScoped<IPostService, PostService>();
+builder.Services.AddScoped<IPostLikeService, PostLikeService>();
 
 builder.Services.AddApiAuthorization();
 

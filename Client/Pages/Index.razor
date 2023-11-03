@@ -1,9 +1,555 @@
 ﻿@page "/"
+@using Harmonify.Shared.DTO
+@using Harmonify.Client.Services.ApplicationUser
+@using Harmonify.Client.Services.Notification
+@using Harmonify.Client.Services.Post
+@using Harmonify.Client.Services.PostLike
+@using Harmonify.Shared.Enums
+@using Harmonify.Shared.Models
+@inject IJSRuntime JsRuntime;
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@inject NavigationManager Navigation
 
-<PageTitle>Index</PageTitle>
+<PageTitle>Harmfeed</PageTitle>
 
-<h1>Hello, world!</h1>
+<AuthorizeView Context="Authorize">
+<Authorized>
 
-Welcome to your new app.
-There exists an optional wrapped helper class which should be set to the button group when it's known if a button group is actually wrapped, which will adjust some border-radius. As it is not possible to detect a wrapping child automatically via pure CSS, you should use that helper class whenever appropriate.There exists an optional wrapped helper class which should be set to the button group when it's known if a button group is actually wrapped, which will adjust some border-radius. As it is not possible to detect a wrapping child automatically via pure CSS, you should use that helper class whenever appropriate.There exists an optional wrapped helper class which should be set to the button group when it's known if a button group is actually wrapped, which will adjust some border-radius. As it is not possible to detect a wrapping child automatically via pure CSS, you should use that helper class whenever appropriate.There exists an optional wrapped helper class which should be set to the button group when it's known if a button group is actually wrapped, which will adjust some border-radius. As it is not possible to detect a wrapping child automatically via pure CSS, you should use that helper class whenever appropriate.There exists an optional wrapped helper class which should be set to the button group when it's known if a button group is actually wrapped, which will adjust some border-radius. As it is not possible to detect a wrapping child automatically via pure CSS, you should use that helper class whenever appropriate.There exists an optional wrapped helper class which should be set to the button group when it's known if a button group is actually wrapped, which will adjust some border-radius. As it is not possible to detect a wrapping child automatically via pure CSS, you should use that helper class whenever appropriate.There exists an optional wrapped helper class which should be set to the button group when it's known if a button group is actually wrapped, which will adjust some border-radius. As it is not possible to detect a wrapping child automatically via pure CSS, you should use that helper class whenever appropriate.There exists an optional wrapped helper class which should be set to the button group when it's known if a button group is actually wrapped, which will adjust some border-radius. As it is not possible to detect a wrapping child automatically via pure CSS, you should use that helper class whenever appropriate.There exists an optional wrapped helper class which should be set to the button group when it's known if a button group is actually wrapped, which will adjust some border-radius. As it is not possible to detect a wrapping child automatically via pure CSS, you should use that helper class whenever appropriate.There exists an optional wrapped helper class which should be set to the button group when it's known if a button group is actually wrapped, which will adjust some border-radius. As it is not possible to detect a wrapping child automatically via pure CSS, you should use that helper class whenever appropriate.There exists an optional wrapped helper class which should be set to the button group when it's known if a button group is actually wrapped, which will adjust some border-radius. As it is not possible to detect a wrapping child automatically via pure CSS, you should use that helper class whenever appropriate.There exists an optional wrapped helper class which should be set to the button group when it's known if a button group is actually wrapped, which will adjust some border-radius. As it is not possible to detect a wrapping child automatically via pure CSS, you should use that helper class whenever appropriate.There exists an optional wrapped helper class which should be set to the button group when it's known if a button group is actually wrapped, which will adjust some border-radius. As it is not possible to detect a wrapping child automatically via pure CSS, you should use that helper class whenever appropriate.There exists an optional wrapped helper class which should be set to the button group when it's known if a button group is actually wrapped, which will adjust some border-radius. As it is not possible to detect a wrapping child automatically via pure CSS, you should use that helper class whenever appropriate.There exists an optional wrapped helper class which should be set to the button group when it's known if a button group is actually wrapped, which will adjust some border-radius. As it is not possible to detect a wrapping child automatically via pure CSS, you should use that helper class whenever appropriate.There exists an optional wrapped helper class which should be set to the button group when it's known if a button group is actually wrapped, which will adjust some border-radius. As it is not possible to detect a wrapping child automatically via pure CSS, you should use that helper class whenever appropriate.There exists an optional wrapped helper class which should be set to the button group when it's known if a button group is actually wrapped, which will adjust some border-radius. As it is not possible to detect a wrapping child automatically via pure CSS, you should use that helper class whenever appropriate.There exists an optional wrapped helper class which should be set to the button group when it's known if a button group is actually wrapped, which will adjust some border-radius. As it is not possible to detect a wrapping child automatically via pure CSS, you should use that helper class whenever appropriate.There exists an optional wrapped helper class which should be set to the button group when it's known if a button group is actually wrapped, which will adjust some border-radius. As it is not possible to detect a wrapping child automatically via pure CSS, you should use that helper class whenever appropriate.There exists an optional wrapped helper class which should be set to the button group when it's known if a button group is actually wrapped, which will adjust some border-radius. As it is not possible to detect a wrapping child automatically via pure CSS, you should use that helper class whenever appropriate.There exists an optional wrapped helper class which should be set to the button group when it's known if a button group is actually wrapped, which will adjust some border-radius. As it is not possible to detect a wrapping child automatically via pure CSS, you should use that helper class whenever appropriate.There exists an optional wrapped helper class which should be set to the button group when it's known if a button group is actually wrapped, which will adjust some border-radius. As it is not possible to detect a wrapping child automatically via pure CSS, you should use that helper class whenever appropriate.There exists an optional wrapped helper class which should be set to the button group when it's known if a button group is actually wrapped, which will adjust some border-radius. As it is not possible to detect a wrapping child automatically via pure CSS, you should use that helper class whenever appropriate.There exists an optional wrapped helper class which should be set to the button group when it's known if a button group is actually wrapped, which will adjust some border-radius. As it is not possible to detect a wrapping child automatically via pure CSS, you should use that helper class whenever appropriate.There exists an optional wrapped helper class which should be set to the button group when it's known if a button group is actually wrapped, which will adjust some border-radius. As it is not possible to detect a wrapping child automatically via pure CSS, you should use that helper class whenever appropriate.There exists an optional wrapped helper class which should be set to the button group when it's known if a button group is actually wrapped, which will adjust some border-radius. As it is not possible to detect a wrapping child automatically via pure CSS, you should use that helper class whenever appropriate.There exists an optional wrapped helper class which should be set to the button group when it's known if a button group is actually wrapped, which will adjust some border-radius. As it is not possible to detect a wrapping child automatically via pure CSS, you should use that helper class whenever appropriate.There exists an optional wrapped helper class which should be set to the button group when it's known if a button group is actually wrapped, which will adjust some border-radius. As it is not possible to detect a wrapping child automatically via pure CSS, you should use that helper class whenever appropriate.There exists an optional wrapped helper class which should be set to the button group when it's known if a button group is actually wrapped, which will adjust some border-radius. As it is not possible to detect a wrapping child automatically via pure CSS, you should use that helper class whenever appropriate.There exists an optional wrapped helper class which should be set to the button group when it's known if a button group is actually wrapped, which will adjust some border-radius. As it is not possible to detect a wrapping child automatically via pure CSS, you should use that helper class whenever appropriate.There exists an optional wrapped helper class which should be set to the button group when it's known if a button group is actually wrapped, which will adjust some border-radius. As it is not possible to detect a wrapping child automatically via pure CSS, you should use that helper class whenever appropriate.There exists an optional wrapped helper class which should be set to the button group when it's known if a button group is actually wrapped, which will adjust some border-radius. As it is not possible to detect a wrapping child automatically via pure CSS, you should use that helper class whenever appropriate.There exists an optional wrapped helper class which should be set to the button group when it's known if a button group is actually wrapped, which will adjust some border-radius. As it is not possible to detect a wrapping child automatically via pure CSS, you should use that helper class whenever appropriate.
-<SurveyPrompt Title="How is Blazor working for you?"/>
+@if (!showTextPost && !showImagePost && !showEditTextPost)
+{
+    <div class="ui segment buttons">
+        <div class="ui button harmonify-background-color"
+             @onclick="() => showTextPost = true">
+            <i class="file alternate outline icon"></i>
+            Create a text-based harm
+        </div>
+        <div class="or"></div>
+        <div class="ui button harmonify-background-color"
+             @onclick="() => showImagePost = true">
+            <i class="camera retro icon"></i>
+            Create a harm with a photo
+        </div>
+    </div>
+}
+
+@if (showTextPost)
+{
+    <form class="ui reply form">
+        <div class="field">
+            <textarea @oninput="HandleOnChange" placeholder="Start typing..."></textarea>
+        </div>
+        <div @onclick="async () => await AddPost()"
+             class="ui blue labeled submit icon button"
+             style="padding-left: 2.5em!important;
+                    padding-right: 1em!important;">
+            <i class="icon edit"></i>Publish harm
+        </div>
+        <div @onclick="() => showTextPost = false"
+             class="ui red labeled submit icon button"
+             style="padding-left: 2.5em!important;
+                    padding-right: 1em!important;">
+            <i class="icon window close outline"></i>Discard
+        </div>
+        <div class="ui dimmer" id="harm-dimmer">
+            <div class="content">
+                <h2 class="ui inverted icon header">
+                    <i class="check icon"></i>
+                    Harm published!
+                </h2>
+            </div>
+        </div>
+    </form>
+}
+
+@if (showEditTextPost)
+{
+    <form class="ui reply form">
+        <div class="field">
+            <textarea @oninput="HandleEditOnChange" value="@TextEditAreaValue"></textarea>
+        </div>
+        <div @onclick="async () => await UpdatePost()"
+             class="ui blue labeled submit icon button"
+             style="padding-left: 2.5em!important;
+                    padding-right: 1em!important;">
+            <i class="icon edit"></i>Save harm
+        </div>
+        <div @onclick="() => showEditTextPost = false"
+             class="ui red labeled submit icon button"
+             style="padding-left: 2.5em!important;
+                    padding-right: 1em!important;">
+            <i class="icon window close outline"></i>Discard
+        </div>
+        <div class="ui dimmer" id="harm-dimmer">
+            <div class="content">
+                <h2 class="ui inverted icon header">
+                    <i class="check icon"></i>
+                    Harm updated!
+                </h2>
+            </div>
+        </div>
+    </form>
+}
+
+<div class="ui feed">
+    @if (loaded)
+    {
+        @foreach (var post in MyFeed)
+        {
+            <div class="event">
+                <div class="label" style="align-self: center;">
+                    @* TODO - get UserDTO in order to display avatar*@
+                    <img src="@User.AvatarSource">
+                </div>
+                <div class="content">
+                    <div class="summary">
+                        <a>@post.Author.FirstName @post.Author.LastName</a> posted a harm
+                        @if (post.EditedAt == null)
+                        {
+                            <div class="date">
+                                On @post.PostedAt
+                            </div> 
+                        }
+                        else
+                        {
+                            <div class="date">
+                                Edited at @post.EditedAt
+                            </div>
+                        }
+                        @if (post.AuthorId == User.Id)
+                        {
+                            <div class="ui text menu"
+                                 style="display: inline-block; margin-left: 1%;
+                                                min-height: 0; margin-bottom: 0; margin-top: 0;">
+                                <div class="ui dropdown item" id="harm-menu-@index">
+                                    <i class="ellipsis horizontal icon"></i>
+                                    <div class="menu">
+                                        <div class="item" @onclick="() => ShowEditTextPost(post)">Edit</div>
+                                        <div class="item" @onclick="async () => await DeletePost(post.Id)">Delete</div>
+                                    </div>
+                                </div>
+                            </div>
+                            @Increment()
+                        }
+                    </div>
+                    <div class="extra text">
+                        @post.Content
+                    </div>
+                    <div class="meta">
+                        @if (post.Likes.Count == 0)
+                        {
+                            <a class="like" @onclick="async () => await LikePost(post.Id, post.AuthorId)">
+                                <i class="like icon"></i>
+                                <span>Be the first person to like this post</span>
+                            </a>
+                        }
+                        else
+                        {
+                            @if (post.Likes.Count == 1 && post.Likes.All(x => x.UserId != User.Id))
+                            {
+                                var userLike = post.Likes.First().User;
+                                <a class="like" @onclick="async () => await LikePost(post.Id, post.AuthorId)">
+                                    <i class="like icon"></i>
+                                    <span>@userLike.FirstName @userLike.LastName likes it</span>
+                                </a>
+                            }
+                            else if (post.Likes.Count > 1 && post.Likes.All(x => x.UserId != User.Id))
+                            {
+                                <a class="like" @onclick="async () => await LikePost(post.Id, post.AuthorId)">
+                                    <i class="like icon"></i>
+                                    <span>@post.Likes.Count likes</span>
+                                </a>
+                            }
+                            else if (post.Likes.Count > 2)
+                            {
+                                var count = post.Likes.Count - 1;
+                                <a class="like" @onclick="async () => await UnlikePost(post.Likes.First(x => x.UserId == User.Id).Id)">
+                                    <i class="like icon"></i>
+                                    <span>You and @count other people like it</span>
+                                </a>
+                            }
+                            else if (post.Likes.Count == 2)
+                            {
+                                var userLike = post.Likes.First(x => x.UserId != User.Id).User;
+                                <a class="like" @onclick="async () => await UnlikePost(post.Likes.First(x => x.UserId == User.Id).Id)">
+                                    <i class="like icon"></i>
+                                    <span>You and @userLike.FirstName @userLike.LastName like it</span>
+                                </a>
+                            }
+                            else
+                            {
+                                <a class="like" @onclick="async () => await UnlikePost(post.Likes.First(x => x.UserId == User.Id).Id)">
+                                    <i class="like icon"></i>
+                                    <span>You like it</span>
+                                </a>
+                            }
+                        }
+                    </div>
+                </div>
+            </div>
+        }
+    }
+    else
+    {
+        <div class="ui active dimmer">
+            <div class="ui text large loader">Loading</div>
+        </div>
+    }
+</div>
+
+@* <div class="ui comments"> *@
+@*     <h3 class="ui dividing header">Comments</h3> *@
+@*     <div class="comment"> *@
+@*         <a class="avatar"> *@
+@*             <img src="unknown-avatar.png"> *@
+@*         </a> *@
+@*         <div class="content"> *@
+@*             <a class="author">Matt</a> *@
+@*             <div class="metadata"> *@
+@*                 <span class="date">Today at 5:42PM</span> *@
+@*             </div> *@
+@*             <div class="text"> *@
+@*                 How artistic! *@
+@*             </div> *@
+@*             <div class="actions"> *@
+@*                 <a class="reply">Reply</a> *@
+@*             </div> *@
+@*         </div> *@
+@*     </div> *@
+@*     <div class="comment"> *@
+@*         <a class="avatar"> *@
+@*             <img src="unknown-avatar.png"> *@
+@*         </a> *@
+@*         <div class="content"> *@
+@*             <a class="author">Elliot Fu</a> *@
+@*             <div class="metadata"> *@
+@*                 <span class="date">Yesterday at 12:30AM</span> *@
+@*             </div> *@
+@*             <div class="text"> *@
+@*                 <p>This has been very useful for my research. Thanks as well!</p> *@
+@*             </div> *@
+@*             <div class="actions"> *@
+@*                 <a class="reply">Reply</a> *@
+@*             </div> *@
+@*         </div> *@
+@*         <div class="comments"> *@
+@*             <div class="comment"> *@
+@*                 <a class="avatar"> *@
+@*                     <img src="unknown-avatar.png"> *@
+@*                 </a> *@
+@*                 <div class="content"> *@
+@*                     <a class="author">Jenny Hess</a> *@
+@*                     <div class="metadata"> *@
+@*                         <span class="date">Just now</span> *@
+@*                     </div> *@
+@*                     <div class="text"> *@
+@*                         Elliot you are always so right :) *@
+@*                     </div> *@
+@*                     <div class="actions"> *@
+@*                         <a class="reply">Reply</a> *@
+@*                     </div> *@
+@*                 </div> *@
+@*                 <div class="comments"> *@
+@*                     <div class="comment"> *@
+@*                         <a class="avatar"> *@
+@*                             <img src="unknown-avatar.png"> *@
+@*                         </a> *@
+@*                         <div class="content"> *@
+@*                             <a class="author">Jenny Hess</a> *@
+@*                             <div class="metadata"> *@
+@*                                 <span class="date">Just now</span> *@
+@*                             </div> *@
+@*                             <div class="text"> *@
+@*                                 Will it work fine? *@
+@*                             </div> *@
+@*                             <div class="actions"> *@
+@*                                 <a class="reply">Reply</a> *@
+@*                             </div> *@
+@*                         </div> *@
+@*                         <div class="comments"> *@
+@*                             <div class="comment"> *@
+@*                                 <a class="avatar"> *@
+@*                                     <img src="unknown-avatar.png"> *@
+@*                                 </a> *@
+@*                                 <div class="content"> *@
+@*                                     <a class="author">Jenny Hess</a> *@
+@*                                     <div class="metadata"> *@
+@*                                         <span class="date">Just now</span> *@
+@*                                     </div> *@
+@*                                     <div class="text"> *@
+@*                                         Maybe :) *@
+@*                                     </div> *@
+@*                                     <div class="actions"> *@
+@*                                         <a class="reply">Reply</a> *@
+@*                                     </div> *@
+@*                                 </div> *@
+@*                             </div> *@
+@*                         </div> *@
+@*                     </div> *@
+@*                 </div> *@
+@*             </div> *@
+@*         </div> *@
+@*     </div> *@
+@*     <div class="comment"> *@
+@*         <a class="avatar"> *@
+@*             <img src="unknown-avatar.png"> *@
+@*         </a> *@
+@*         <div class="content"> *@
+@*             <a class="author">Joe Henderson</a> *@
+@*             <div class="metadata"> *@
+@*                 <span class="date">5 days ago</span> *@
+@*             </div> *@
+@*             <div class="text"> *@
+@*                 Dude, this is awesome. Thanks so much *@
+@*             </div> *@
+@*             <div class="actions"> *@
+@*                 <a class="reply">Reply</a> *@
+@*             </div> *@
+@*         </div> *@
+@*     </div> *@
+@*     <form class="ui reply form"> *@
+@*         <div class="field"> *@
+@*             <textarea></textarea> *@
+@*         </div> *@
+@*         <div class="ui blue labeled submit icon button"> *@
+@*             <i class="icon edit"></i> Add Reply *@
+@*         </div> *@
+@*     </form> *@
+@* </div> *@
+
+</Authorized>
+<NotAuthorized>
+    <div class="my-container">
+        <div class="my-sub-container p-2 ">
+            <div style="text-align: center;">
+                <h3>Log in, to see your feed.</h3>
+            </div>
+        </div>
+    </div>
+</NotAuthorized>
+</AuthorizeView>
+
+@code{
+    private bool loaded = false;
+
+    private int index = 0;
+
+    private bool showTextPost = false;
+
+    private bool showImagePost = false;
+    
+    private bool showEditTextPost = false;
+
+    private Post? postBeingEdited = null;
+
+    private ApplicationUserDTO User { get; set; }
+
+    private ICollection<Post> MyFeed { get; set; }
+
+    private string TextAreaValue { get; set; }
+    
+    private string TextEditAreaValue { get; set; }
+
+    [CascadingParameter]
+    private Task<AuthenticationState> AuthenticationStateTask { get; set; }
+
+    [Inject]
+    public IApplicationUserService UserService { get; set; }
+
+    [Inject]
+    public IPostService PostService { get; set; }
+
+    [Inject]
+    public IPostLikeService PostLikeService { get; set; }
+
+    [Inject]
+    public INotificationService NotificationService { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        var authState = await AuthenticationStateProvider
+            .GetAuthenticationStateAsync();
+
+        if (authState.User.Identity.Name != null)
+        {
+            User = await UserService
+                .GetUserByEmailAsync(authState.User.Identity?.Name);
+
+            if (User != null)
+                MyFeed = await PostService.GetMyFeedAsync(User.Id);
+        }
+        loaded = true;
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender)
+        {
+            for(int i = 0; i < index; i++)
+                await JsRuntime
+                    .InvokeVoidAsync("dropdown", $"#harm-menu-{i}");
+        }
+    }
+
+    private void HandleOnChange(ChangeEventArgs args)
+    {
+        TextAreaValue = args.Value.ToString();
+    }
+    
+    private void HandleEditOnChange(ChangeEventArgs args)
+    {
+        TextEditAreaValue = args.Value.ToString();
+    }
+
+    private void ShowEditTextPost(Post post)
+    {
+        postBeingEdited = post;
+        TextEditAreaValue = post.Content!;
+        showEditTextPost = true;
+        showTextPost = false;
+        showImagePost = false;
+    }
+
+    private async Task UpdatePost()
+    {
+        if (!string.IsNullOrWhiteSpace(TextEditAreaValue))
+        {
+            var body = new
+            {
+                PostId = postBeingEdited!.Id,
+                Content = TextEditAreaValue,
+                EditedAt = DateTime.Now
+            };
+
+            var entity = await PostService.UpdateAsync(body);
+            
+            if (entity == null)
+                await JsRuntime.InvokeVoidAsync(
+                    "errorToast",
+                    "Something went wrong, we couldn't update your harm.");
+            else
+            {
+                await JsRuntime.InvokeVoidAsync("toggleDimmer");
+                MyFeed = await PostService.GetMyFeedAsync(User.Id);
+                StateHasChanged();
+                await Task.Delay(1000);
+                showEditTextPost = false;
+            }
+        }
+        else
+            await JsRuntime.InvokeVoidAsync(
+                "errorToast",
+                "You can't save an empty harm!");
+    }
+
+    private async Task AddPost()
+    {
+        if (!string.IsNullOrWhiteSpace(TextAreaValue))
+        {
+            var body = new
+            {
+                Id = Guid.NewGuid(),
+                Type = PostType.Text,
+                Content = TextAreaValue,
+                PostedAt = DateTime.Now,
+                AuthorId = User.Id
+            };
+
+            var postId = await PostService.CreateAsync(body);
+
+            if (postId == null)
+                await JsRuntime.InvokeVoidAsync(
+                    "errorToast",
+                    "Post already exists!");
+            else
+            {
+                await JsRuntime.InvokeVoidAsync("toggleDimmer");
+                MyFeed = await PostService.GetMyFeedAsync(User.Id);
+                StateHasChanged();
+                await Task.Delay(1000);
+                showImagePost = false;
+                showTextPost = false;
+            }
+        }
+        else
+        {
+            await JsRuntime.InvokeVoidAsync(
+                "errorToast",
+                "You can't publish an empty harm!");
+        }
+    }
+    
+    private object? Increment()
+    {
+        index++;
+        return null;
+    }
+
+    //TODO move to shared file
+    private async Task LikePost(Guid postId, string postOwnerId)
+    {
+        var body = new
+        {
+            Id = Guid.NewGuid(),
+            PostId = postId,
+            UserId = User.Id
+        };
+
+        var entity = await PostLikeService.CreateAsync(body);
+
+        if (entity == null)
+            await JsRuntime.InvokeVoidAsync(
+                "errorToast",
+                "Something went wrong, we couldn't like this post.");
+        else
+        {
+            if (postOwnerId != User.Id)
+            {
+                var notificationBody = new
+                {
+                    Type = NotificationType.PostLike,
+                    Description = $"{User.FullName} liked your post.",
+                    MarkedAsSeen = false,
+                    ReceivedAt = DateTime.Now,
+                    ReferenceUrl = $"/Post/{postId}",
+                    UserId = postOwnerId
+                };
+
+                await NotificationService.CreateAsync(notificationBody);
+            }
+
+            Navigation.NavigateTo("/", forceLoad: true);
+        }
+    }
+
+    private async Task UnlikePost(Guid postLikeId)
+    {
+        var wasRemoved = await PostLikeService.DeletePostLikeAsync(postLikeId);
+
+        if (!wasRemoved)
+            await JsRuntime.InvokeVoidAsync(
+                "errorToast",
+                "Something went wrong, we couldn't unlike this post.");
+        else
+        {
+            Navigation.NavigateTo("/", forceLoad: true);
+        }
+    }
+
+    private async Task DeletePost(Guid postId)
+    {
+        var wasRemoved = await PostService.DeleteAsync(postId);
+        
+        if (!wasRemoved)
+            await JsRuntime.InvokeVoidAsync(
+                "errorToast",
+                "Something went wrong, we couldn't delete this post.");
+        else
+        {
+            await JsRuntime.InvokeVoidAsync(
+                "successToast",
+                "Your harm was deleted.");
+            MyFeed = await PostService.GetMyFeedAsync(User.Id);
+            StateHasChanged();
+        }
+    }
+}
