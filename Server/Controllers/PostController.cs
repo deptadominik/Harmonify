@@ -1,5 +1,6 @@
 using Harmonify.Server.Commands.Post;
 using Harmonify.Server.Queries.Post;
+using Harmonify.Shared.DTO;
 using Harmonify.Shared.Models;
 using MediatR;
 using Microsoft.AspNetCore.Mvc;
@@ -30,7 +31,7 @@ public class PostController : ControllerBase
     }
     
     [HttpGet("my-feed")]
-    public async Task<ActionResult<ICollection<Post>>> GetMyFeed(string userId)
+    public async Task<ActionResult<ICollection<PostDTO>>> GetMyFeed(string userId)
     {
         var entities = await _mediator
             .Send(new GetMyFeedQuery { UserId = userId });
@@ -42,7 +43,7 @@ public class PostController : ControllerBase
     }
     
     [HttpGet("user-posts")]
-    public async Task<ActionResult<ICollection<Post>>> GetUserPosts(string userId)
+    public async Task<ActionResult<ICollection<PostDTO>>> GetUserPosts(string userId)
     {
         var entities = await _mediator
             .Send(new GetUserPostsQuery { UserId = userId });

@@ -166,8 +166,7 @@
                     {
                         <div class="event">
                             <div class="label" style="align-self: center;">
-                                @* TODO - get UserDTO in order to display avatar*@
-                                <img src="@MyUserData.AvatarSource">
+                                <img src="@post.Author.AvatarSource">
                             </div>
                             <div class="content">
                                 <div class="summary">
@@ -184,21 +183,6 @@
                                             Edited at @post.EditedAt
                                         </div>
                                     }
-                                    @if (post.AuthorId == MyUserData.Id)
-                                    {
-                                        <div class="ui text menu"
-                                             style="display: inline-block; margin-left: 1%;
-                                                                         min-height: 0; margin-bottom: 0; margin-top: 0;">
-                                            <div class="ui dropdown item" id="harm-menu">
-                                                <i class="ellipsis horizontal icon"></i>
-                                                <div class="menu">
-                                                    <div class="item">Applications</div>
-                                                    <div class="item">International Students</div>
-                                                    <div class="item">Scholarships</div>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    }
                                 </div>
                                 <div class="extra text">
                                     @post.Content
@@ -206,7 +190,7 @@
                                 <div class="meta">
                                     @if (post.Likes.Count == 0)
                                     {
-                                        <a class="like" @onclick="async () => await LikePost(post.Id, post.AuthorId)">
+                                        <a class="like" @onclick="async () => await LikePost(post.Id, post.Author.Id)">
                                             <i class="like icon"></i>
                                             <span>Be the first person to like this post</span>
                                         </a>
@@ -216,14 +200,14 @@
                                         @if (post.Likes.Count == 1 && post.Likes.All(x => x.UserId != MyUserData.Id))
                                         {
                                             var userLike = post.Likes.First().User;
-                                            <a class="like" @onclick="async () => await LikePost(post.Id, post.AuthorId)">
+                                            <a class="like" @onclick="async () => await LikePost(post.Id, post.Author.Id)">
                                                 <i class="like icon"></i>
                                                 <span>@userLike.FirstName @userLike.LastName likes it</span>
                                             </a>
                                         }
                                         else if (post.Likes.Count > 1 && post.Likes.All(x => x.UserId != MyUserData.Id))
                                         {
-                                            <a class="like" @onclick="async () => await LikePost(post.Id, post.AuthorId)">
+                                            <a class="like" @onclick="async () => await LikePost(post.Id, post.Author.Id)">
                                                 <i class="like icon"></i>
                                                 <span>@post.Likes.Count likes</span>
                                             </a>
@@ -293,7 +277,7 @@
 
     private ApplicationUserDTO? UserProfile { get; set; }
 
-    private ICollection<Post> Harms { get; set; }
+    private ICollection<PostDTO> Harms { get; set; }
 
     private AvatarImage? Avatar { get; set; }
 

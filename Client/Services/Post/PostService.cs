@@ -1,6 +1,7 @@
 using System.Net;
 using System.Net.Http.Json;
 using System.Text.Json;
+using Harmonify.Shared.DTO;
 
 namespace Harmonify.Client.Services.Post;
 
@@ -29,34 +30,34 @@ public class PostService : IPostService
         return post;
     }
 
-    public async Task<ICollection<Harmonify.Shared.Models.Post>> GetMyFeedAsync(string userId)
+    public async Task<ICollection<PostDTO>> GetMyFeedAsync(string userId)
     {
         var response = await httpClient
             .GetAsync($"Post/my-feed?userId={userId}");
 
         if (response.StatusCode == HttpStatusCode.NoContent)
-            return Array.Empty<Harmonify.Shared.Models.Post>();
+            return Array.Empty<PostDTO>();
 
         var content = await response.Content.ReadAsStringAsync();
 
-        return JsonSerializer.Deserialize<ICollection<Harmonify.Shared.Models.Post>>(content,
+        return JsonSerializer.Deserialize<ICollection<PostDTO>>(content,
                    new JsonSerializerOptions { PropertyNameCaseInsensitive = true })
-               ?? Array.Empty<Harmonify.Shared.Models.Post>();
+               ?? Array.Empty<PostDTO>();
     }
     
-    public async Task<ICollection<Harmonify.Shared.Models.Post>> GetUserPostsAsync(string userId)
+    public async Task<ICollection<PostDTO>> GetUserPostsAsync(string userId)
     {
         var response = await httpClient
             .GetAsync($"Post/user-posts?userId={userId}");
 
         if (response.StatusCode == HttpStatusCode.NoContent)
-            return Array.Empty<Harmonify.Shared.Models.Post>();
+            return Array.Empty<PostDTO>();
 
         var content = await response.Content.ReadAsStringAsync();
 
-        return JsonSerializer.Deserialize<ICollection<Harmonify.Shared.Models.Post>>(content,
+        return JsonSerializer.Deserialize<ICollection<PostDTO>>(content,
                    new JsonSerializerOptions { PropertyNameCaseInsensitive = true })
-               ?? Array.Empty<Harmonify.Shared.Models.Post>();
+               ?? Array.Empty<PostDTO>();
     }
     
     public async Task<Guid?> CreateAsync(object body)

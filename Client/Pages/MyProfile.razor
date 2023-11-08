@@ -142,8 +142,7 @@
                     {
                         <div class="event">
                             <div class="label" style="align-self: center;">
-                                @* TODO - get UserDTO in order to display avatar*@
-                                <img src="@User.AvatarSource">
+                                <img src="@post.Author.AvatarSource">
                             </div>
                             <div class="content">
                                 <div class="summary">
@@ -160,7 +159,7 @@
                                             Edited at @post.EditedAt
                                         </div>
                                     }
-                                    @if (post.AuthorId == User.Id)
+                                    @if (post.Author.Id == User.Id)
                                     {
                                         <div class="ui text menu"
                                              style="display: inline-block; margin-left: 1%;
@@ -182,7 +181,7 @@
                                 <div class="meta">
                                     @if (post.Likes.Count == 0)
                                     {
-                                        <a class="like" @onclick="async () => await LikePost(post.Id, post.AuthorId)">
+                                        <a class="like" @onclick="async () => await LikePost(post.Id, post.Author.Id)">
                                             <i class="like icon"></i>
                                             <span>Be the first person to like this post</span>
                                         </a>
@@ -192,14 +191,14 @@
                                         @if (post.Likes.Count == 1 && post.Likes.All(x => x.UserId != User.Id))
                                         {
                                             var userLike = post.Likes.First().User;
-                                            <a class="like" @onclick="async () => await LikePost(post.Id, post.AuthorId)">
+                                            <a class="like" @onclick="async () => await LikePost(post.Id, post.Author.Id)">
                                                 <i class="like icon"></i>
                                                 <span>@userLike.FirstName @userLike.LastName likes it</span>
                                             </a>
                                         }
                                         else if (post.Likes.Count > 1 && post.Likes.All(x => x.UserId != User.Id))
                                         {
-                                            <a class="like" @onclick="async () => await LikePost(post.Id, post.AuthorId)">
+                                            <a class="like" @onclick="async () => await LikePost(post.Id, post.Author.Id)">
                                                 <i class="like icon"></i>
                                                 <span>@post.Likes.Count likes</span>
                                             </a>
@@ -262,13 +261,13 @@
     
     private bool showEditTextPost = false;
 
-    private Post? postBeingEdited = null;
+    private PostDTO? postBeingEdited = null;
 
     private List<ApplicationUserDTO> Friends { get; set; } = new();
 
     private List<Tuple<ApplicationUserDTO, int>> FriendsWithAmount { get; set; } = new();
 
-    private ICollection<Post> MyHarms { get; set; }
+    private ICollection<PostDTO> MyHarms { get; set; }
 
     private ApplicationUserDTO? User { get; set; }
 
@@ -518,7 +517,7 @@
         TextEditAreaValue = args.Value.ToString();
     }
 
-    private void ShowEditTextPost(Post post)
+    private void ShowEditTextPost(PostDTO post)
     {
         postBeingEdited = post;
         TextEditAreaValue = post.Content!;

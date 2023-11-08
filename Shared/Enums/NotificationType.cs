@@ -3,5 +3,8 @@ namespace Harmonify.Shared.Enums;
 public enum NotificationType
 {
     Friendship,
-    PostLike
+    PostLike,
+    Comment,
+    CommentReply,
+    CommentLike
 }

@@ -1,27 +1,31 @@
+using AutoMapper;
 using Harmonify.Server.Repositories;
+using Harmonify.Shared.DTO;
 using MediatR;
 
 namespace Harmonify.Server.Queries.Post;
 
-public class GetMyFeedQuery : IRequest<ICollection<Shared.Models.Post>>
+public class GetMyFeedQuery : IRequest<ICollection<PostDTO>>
 {
     public string UserId { get; init; }
 
-    public class Handler : IRequestHandler<GetMyFeedQuery, ICollection<Shared.Models.Post>>
+    public class Handler : IRequestHandler<GetMyFeedQuery, ICollection<PostDTO>>
     {
         private readonly PostRepository _repository;
+        private readonly IMapper _mapper;
 
-        public Handler(PostRepository repository)
+        public Handler(PostRepository repository, IMapper mapper)
         {
             _repository = repository;
+            _mapper = mapper;
         }
 
-        public async Task<ICollection<Shared.Models.Post>> Handle(GetMyFeedQuery request,
+        public async Task<ICollection<PostDTO>> Handle(GetMyFeedQuery request,
             CancellationToken cancellationToken)
         {
             var posts = await _repository.GetMyFeedAsync(request.UserId);
 
-            return posts;
+            return _mapper.Map<ICollection<PostDTO>>(posts);
         }
     }
 }

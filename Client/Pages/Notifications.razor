@@ -35,13 +35,21 @@
                     {
                         <div class="event">
                             <div class="label" style="align-self: center !important;">
-                                @if (notification.Type == NotificationType.Friendship)
+                                @switch (notification.Type)
                                 {
-                                    <i class="user friends icon"></i>
-                                }
-                                else if (notification.Type == NotificationType.PostLike)
-                                {
-                                    <i class="heart icon"></i>
+                                    case NotificationType.Friendship:
+                                        <i class="user friends icon"></i>
+                                        break;
+                                    case NotificationType.PostLike:
+                                    case NotificationType.CommentLike:
+                                        <i class="heart icon"></i>
+                                        break;
+                                    case NotificationType.Comment:
+                                        <i class="comment icon"></i>
+                                        break;
+                                    case NotificationType.CommentReply:
+                                        <i class="reply icon"></i>
+                                        break;
                                 }
                             </div>
                             <div class="content" style="padding-top: 0 !important;">
@@ -75,13 +83,21 @@
                     {
                         <div class="event">
                             <div class="label" style="align-self: center !important;">
-                                @if (notification.Type == NotificationType.Friendship)
+                                @switch (notification.Type)
                                 {
-                                    <i class="user friends icon"></i>
-                                }
-                                else if (notification.Type == NotificationType.PostLike)
-                                {
-                                    <i class="heart icon"></i>
+                                    case NotificationType.Friendship:
+                                        <i class="user friends icon"></i>
+                                        break;
+                                    case NotificationType.PostLike:
+                                    case NotificationType.CommentLike:
+                                        <i class="heart icon"></i>
+                                        break;
+                                    case NotificationType.Comment:
+                                        <i class="comment icon"></i>
+                                        break;
+                                    case NotificationType.CommentReply:
+                                        <i class="reply icon"></i>
+                                        break;
                                 }
                             </div>
                             <div class="content" style="padding-top: 0 !important;">

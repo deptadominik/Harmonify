@@ -1,4 +1,3 @@
-using AutoMapper.Internal;
 using Harmonify.Server.Data;
 using Harmonify.Shared.Models;
 using Microsoft.EntityFrameworkCore;
@@ -33,7 +32,7 @@ public class PostRepository
         
         return await ctx.Posts
             .Where(p => myFriends.Contains(p.AuthorId) || p.AuthorId == userId)
-            .Include(p => p.Author)
+            .Include(p => p.Author).ThenInclude(a => a.Avatar)
             .Include(p => p.Likes)
             .ThenInclude(pl => pl.User)
             .OrderByDescending(p => p.PostedAt)
@@ -44,9 +43,8 @@ public class PostRepository
     {
         return await ctx.Posts
             .Where(p => p.AuthorId == userId)
-            .Include(p => p.Author)
-            .Include(p => p.Likes)
-            .ThenInclude(pl => pl.User)
+            .Include(p => p.Author).ThenInclude(a => a.Avatar)
+            .Include(p => p.Likes).ThenInclude(pl => pl.User)
             .OrderByDescending(p => p.PostedAt)
             .ToListAsync();
     }

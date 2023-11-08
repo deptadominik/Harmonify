@@ -8,7 +8,7 @@ public class Comment
     
     public DateTime PostedAt { get; set; }
     
-    public DateTime EditedAt { get; set; }
+    public DateTime? EditedAt { get; set; }
     
     public Guid? ParentCommentId { get; set; }
     

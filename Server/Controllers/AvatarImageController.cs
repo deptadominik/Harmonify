@@ -1,5 +1,5 @@
 using Harmonify.Server.Commands.AvatarImage;
-using Harmonify.Server.Queries;
+using Harmonify.Server.Queries.AvatarImage;
 using Harmonify.Shared.Models;
 using MediatR;
 using Microsoft.AspNetCore.Mvc;

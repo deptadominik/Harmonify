@@ -316,7 +316,7 @@ namespace Harmonify.Server.Data.Migrations
                         .IsRequired()
                         .HasColumnType("TEXT");
 
-                    b.Property<DateTime>("EditedAt")
+                    b.Property<DateTime?>("EditedAt")
                         .HasColumnType("TEXT");
 
                     b.Property<Guid?>("ParentCommentId")
