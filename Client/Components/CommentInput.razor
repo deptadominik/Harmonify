@@ -1,0 +1,127 @@
+@using Harmonify.Client.Services.CommentService
+@using Harmonify.Client.Services.Notification
+@using Harmonify.Shared.DTO
+@using Harmonify.Shared.Enums
+@using Harmonify.Client.Services.ApplicationUser
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@inject IJSRuntime JsRuntime;
+
+<form class="ui reply form">
+    <div class="field">
+        <textarea @oninput="HandleOnChange" value="@TextAreaValue"></textarea>
+    </div>
+    <div class="ui blue labeled icon button"
+         @onclick="async () => await AddComment()">
+        <i class="icon comments"></i>Add comment
+    </div>
+    <div class="ui dimmer" id="comment-dimmer">
+        <div class="content">
+            <h2 class="ui inverted icon header">
+                <i class="check icon"></i>
+                Comment published!
+            </h2>
+        </div>
+    </div>
+</form>
+
+@code
+{
+    private ApplicationUserDTO User { get; set; }
+    
+    private string TextAreaValue { get; set; }
+    
+    [Parameter]
+    public EventCallback<ICollection<CommentDTO>> OnHarmComments { get; set; }
+    
+    [Parameter]
+    public EventCallback<int> OnCommentIndex { get; set; }
+    
+    [Parameter]
+    public EventCallback<bool> OnGetDropdownIndexes { get; set; }
+
+    [Parameter]
+    public PostDTO PostBeingCommented { get; set; }
+    
+    [Inject]
+    public ICommentService CommentService { get; set; }
+    
+    [Inject]
+    public IApplicationUserService UserService { get; set; }
+    
+    [Inject]
+    public INotificationService NotificationService { get; set; }
+    
+    protected override async Task OnInitializedAsync()
+    {
+        var authState = await AuthenticationStateProvider
+            .GetAuthenticationStateAsync();
+
+        if (authState.User.Identity.Name != null)
+        {
+            User = await UserService
+                .GetUserByEmailAsync(authState.User.Identity?.Name);
+        }
+    }
+    
+    private void HandleOnChange(ChangeEventArgs args) =>
+        TextAreaValue = args.Value.ToString();
+    
+    private async Task AddComment()
+    {
+        if (!string.IsNullOrWhiteSpace(TextAreaValue))
+        {
+            var body = new
+            {
+                Id = Guid.NewGuid(),
+                Content = TextAreaValue,
+                PostedAt = DateTime.Now,
+                PostId = PostBeingCommented!.Id,
+                AuthorId = User.Id
+            };
+
+            var commentId = await CommentService.CreateAsync(body);
+
+            if (commentId == null)
+                await JsRuntime.InvokeVoidAsync(
+                    "errorToast",
+                    "Comment already exists!");
+            else
+            {
+                await JsRuntime.InvokeVoidAsync("toggleCommentDimmer");
+                await OnCommentIndex.InvokeAsync(0); // reset counter in order to have small ID's for dropdowns
+                TextAreaValue = "";
+                var comments = await CommentService
+                    .GetPostCommentsAsync(PostBeingCommented.Id);
+                await OnHarmComments.InvokeAsync(comments);
+
+                if (User.Id != PostBeingCommented.Author.Id)
+                {
+                    //TODO create a shared method for this
+                    var notificationBody = new
+                    {
+                        Type = NotificationType.Comment,
+                        Description = $"{User.FullName} commented your harm.",
+                        MarkedAsSeen = false,
+                        ReceivedAt = DateTime.Now,
+                        ReferenceUrl = $"/Post/{PostBeingCommented!.Id}",
+                        UserId = PostBeingCommented!.Author.Id
+                    };
+
+                    await NotificationService.CreateAsync(notificationBody);
+                }
+
+                StateHasChanged();
+
+                // Intentionally not awaiting this call,
+                // as we want to dispose this component first
+                OnGetDropdownIndexes.InvokeAsync(true);
+            }
+        }
+        else
+        {
+            await JsRuntime.InvokeVoidAsync(
+                "errorToast",
+                "You can't publish an empty comment!");
+        }
+    }
+}

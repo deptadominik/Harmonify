@@ -7,6 +7,7 @@
 @using Harmonify.Client.Services.Post
 @using Harmonify.Client.Services.PostLike
 @using Harmonify.Shared.Enums
+@using Harmonify.Client.Components
 @inject IJSRuntime JsRuntime;
 @inject AuthenticationStateProvider AuthenticationStateProvider
 @inject NavigationManager Navigation
@@ -32,63 +33,17 @@
         </div>
     </div>
 }
-
 @if (showTextPost)
 {
-    <form class="ui reply form">
-        <div class="field">
-            <textarea @oninput="HandleOnChange" placeholder="Start typing..."></textarea>
-        </div>
-        <div @onclick="async () => await AddPost()"
-             class="ui blue labeled submit icon button"
-             style="padding-left: 2.5em!important;
-                    padding-right: 1em!important;">
-            <i class="icon edit"></i>Publish harm
-        </div>
-        <div @onclick="() => showTextPost = false"
-             class="ui red labeled submit icon button"
-             style="padding-left: 2.5em!important;
-                    padding-right: 1em!important;">
-            <i class="icon window close outline"></i>Discard
-        </div>
-        <div class="ui dimmer" id="harm-dimmer">
-            <div class="content">
-                <h2 class="ui inverted icon header">
-                    <i class="check icon"></i>
-                    Harm published!
-                </h2>
-            </div>
-        </div>
-    </form>
+    <TextHarmInput OnShowTextPost=@UpdateShowTextPostValue
+                   OnMyFeed=@UpdateMyFeedValue/>
 }
 
 @if (showEditTextPost)
 {
-    <form class="ui reply form">
-        <div class="field">
-            <textarea @oninput="HandleEditOnChange" value="@TextEditAreaValue"></textarea>
-        </div>
-        <div @onclick="async () => await UpdatePost()"
-             class="ui blue labeled submit icon button"
-             style="padding-left: 2.5em!important;
-                    padding-right: 1em!important;">
-            <i class="icon edit"></i>Save harm
-        </div>
-        <div @onclick="() => showEditTextPost = false"
-             class="ui red labeled submit icon button"
-             style="padding-left: 2.5em!important;
-                    padding-right: 1em!important;">
-            <i class="icon window close outline"></i>Discard
-        </div>
-        <div class="ui dimmer" id="harm-dimmer">
-            <div class="content">
-                <h2 class="ui inverted icon header">
-                    <i class="check icon"></i>
-                    Harm updated!
-                </h2>
-            </div>
-        </div>
-    </form>
+    <EditTextHarmInput OnShowEditTextPost=@UpdateShowEditTextPostValue
+                       OnMyFeed=@UpdateMyFeedValue
+                       PostBeingEdited=@postBeingEdited/>
 }
 
 <div class="ui feed">
@@ -106,17 +61,13 @@
                         <a>@post.Author.FirstName @post.Author.LastName</a> posted a harm
                         @if (post.Author.Id == User.Id)
                         {
-                            <div class="ui text menu"
-                                 style="display: inline-flex; float: right;
-                                 margin-left: 1%; min-height: 0; margin-bottom: 0; margin-top: 0;">
-                                <div class="ui dropdown item" id="harm-menu-@index">
-                                    <i class="ellipsis horizontal icon"></i>
-                                    <div class="menu">
-                                        <div class="item" @onclick="() => ShowEditTextPost(post)">Edit</div>
-                                        <div class="item" @onclick="async () => await DeletePost(post.Id)">Delete</div>
-                                    </div>
-                                </div>
-                            </div>
+                            <HarmDropdown Id=@($"harm-menu-{commentIndex}")
+                                          Type=DropdownType.Post
+                                          OnMyFeed=@UpdateMyFeedValue
+                                          OnShowTextPost=@UpdateShowTextPostValue
+                                          OnShowEditTextPost=@UpdateShowEditTextPostValue
+                                          OnPostBeingEdited="@UpdatePostBeingEditedValue"
+                                          PostBeingEdited=@post/>
                             @Increment()
                         }
                         @if (post.EditedAt == null)
@@ -202,316 +153,238 @@
     }
 </div>
 <div class="ui modal" id="comments-modal" style="top: unset; left:  unset; height: unset;">
-<div class="header">Comments</div>
-<div class="scrolling content">
-<div class="ui comments" style="max-width: unset;">
-@if (loaded && HarmComments != null)
-{
-    @foreach (var comment in HarmComments)
-    {
-        @if (comment.ParentCommentId == null)
-        {
-            <div class="comment ui raised segment"
-                 style="padding: 2%;">
-            <a class="avatar">
-                <img src="@comment.Author.AvatarSource">
-            </a>
-            <div class="content" style="padding-top: 0;">
-                <a class="author"
-                   @onclick="() => Navigation.NavigateTo(comment.Author.ProfileUrl, forceLoad: true)">
-                    @comment.Author.FullName
-                </a>
-                <div class="metadata" style="display: inline;margin-left: 2%;">
-                    @if (comment.Author.Id == User.Id)
-                    {
-                        <div class="ui tiny text menu"
-                             style="display: inline-flex; float: right;min-height: 0; margin-bottom: 0; margin-top: 0;">
-                            <div class="ui dropdown item" id="comment-menu-@commentIndex">
-                                <i class="ellipsis horizontal icon"></i>
-                                <div class="menu">
-                                    <div class="item" @onclick="() => OpenEditCommentSection(comment)">Edit</div>
-                                    <div class="item" @onclick="async () => await DeleteComment(comment.Id)">Delete</div>
-                                </div>
-                            </div>
-                        </div>
-                        @IncrementComment()
-                    }
-                    @* TODO create shared method for getting today, yesterday strings *@
-                    @if (comment.EditedAt == null)
-                    {
-                        <span class="date" style="display: inline-flex; float: right;margin-top: 0.2em;">@comment.PostedAt</span>
-                    }
-                    else
-                    {
-                        <span class="date" style="display: inline-flex; float: right;margin-top: 0.2em;">@comment.EditedAt</span>
-                        <div class="ui yellow circular tiny label" style="margin-right: 2%; display: inline-flex; float: right;">
-                            Edited
-                        </div>
-                    }
-                </div>
-                <div class="text">
-                    @comment.Content
-                </div>
-                <div class="actions">
-                    <div class="reply">
-                        @RenderLikeSection(comment)
-                        <a class="reply" @onclick="() => OpenAddReplySection(comment)">
-                            <i class="reply icon"></i>Reply
-                        </a>
-                    </div>
-                </div>
-            </div>
-            @if (comment.Replies.Count > 0)
+    <div class="header">Comments</div>
+    <div class="scrolling content">
+        <div class="ui comments" style="max-width: unset;">
+            @if (loaded && HarmComments != null)
             {
-                <div class="comments ui segment"
-                     style="padding: 2%;margin-top: 2%;">
-                    @foreach (var reply in comment.Replies.OrderBy(c => c.PostedAt))
+                @foreach (var comment in HarmComments)
+                {
+                    @if (comment.ParentCommentId == null)
                     {
-                        <div class="comment">
+                        <div class="comment ui raised segment"
+                             style="padding: 2%;">
                             <a class="avatar">
-                                <img src="@reply.Author.AvatarSource">
+                                <img src="@comment.Author.AvatarSource">
                             </a>
                             <div class="content" style="padding-top: 0;">
                                 <a class="author"
-                                   @onclick="() => Navigation.NavigateTo(reply.Author.ProfileUrl, forceLoad: true)">
-                                    @reply.Author.FullName
+                                   @onclick="() => Navigation.NavigateTo(comment.Author.ProfileUrl, forceLoad: true)">
+                                    @comment.Author.FullName
                                 </a>
                                 <div class="metadata" style="display: inline;margin-left: 2%;">
-                                    @if (reply.Author.Id == User.Id)
+                                    @if (comment.Author.Id == User.Id)
                                     {
-                                        <div class="ui tiny text menu"
-                                             style="display: inline-flex; float: right;min-height: 0; margin-bottom: 0; margin-top: 0;">
-                                            <div class="ui dropdown item" id="comment-menu-@commentIndex">
-                                                <i class="ellipsis horizontal icon"></i>
-                                                <div class="menu">
-                                                    <div class="item" @onclick="() => OpenEditReplySection(reply)">Edit</div>
-                                                    <div class="item" @onclick="async () => await DeleteComment(reply.Id)">Delete</div>
-                                                </div>
-                                            </div>
-                                        </div>
+                                        <HarmDropdown Id=@($"comment-menu-{commentIndex}")
+                                                      Type=DropdownType.Comment
+                                                      OnHarmComments=@UpdateHarmCommentsValue
+                                                      OnCommentBeingEdited=@UpdateCommentBeingEditedValue
+                                                      Comment=@comment
+                                                      PostBeingCommented=@postBeingCommented/>
                                         @IncrementComment()
                                     }
                                     @* TODO create shared method for getting today, yesterday strings *@
-                                    @if (reply.EditedAt == null)
+                                    @if (comment.EditedAt == null)
                                     {
-                                        <span class="date" style="display: inline-flex; float: right;margin-top: 0.2em;">@reply.PostedAt</span>
+                                        <span class="date" style="display: inline-flex; float: right;margin-top: 0.2em;">@comment.PostedAt</span>
                                     }
                                     else
                                     {
-                                        <span class="date" style="display: inline-flex; float: right;margin-top: 0.2em;">@reply.EditedAt</span>
+                                        <span class="date" style="display: inline-flex; float: right;margin-top: 0.2em;">@comment.EditedAt</span>
                                         <div class="ui yellow circular tiny label" style="margin-right: 2%; display: inline-flex; float: right;">
                                             Edited
                                         </div>
                                     }
                                 </div>
                                 <div class="text">
-                                    @reply.Content
+                                    @comment.Content
                                 </div>
                                 <div class="actions">
                                     <div class="reply">
-                                        @RenderLikeSection(reply)
-                                        <a class="reply" @onclick="() => OpenAddReplyToReplySection(reply)">
+                                        @RenderLikeSection(comment)
+                                        <a class="reply" @onclick="() => OpenAddReplySection(comment)">
                                             <i class="reply icon"></i>Reply
                                         </a>
                                     </div>
                                 </div>
                             </div>
-                            @if (reply.Replies.Count > 0)
+                            @if (comment.Replies.Count > 0)
                             {
-                                <div class="comments">
-                                    @foreach (var repliedReply in reply.Replies.OrderBy(c => c.PostedAt))
+                                <div class="comments ui segment"
+                                     style="padding: 2%;margin-top: 2%;">
+                                    @foreach (var reply in comment.Replies.OrderBy(c => c.PostedAt))
                                     {
-                                        <div class="comment ui segment"
-                                             style="padding: 2%;margin-top: 2%;">
+                                        <div class="comment">
                                             <a class="avatar">
-                                                <img src="@repliedReply.Author.AvatarSource">
+                                                <img src="@reply.Author.AvatarSource">
                                             </a>
                                             <div class="content" style="padding-top: 0;">
                                                 <a class="author"
-                                                   @onclick="() => Navigation.NavigateTo(repliedReply.Author.ProfileUrl, forceLoad: true)">
-                                                    @repliedReply.Author.FullName
+                                                   @onclick="() => Navigation.NavigateTo(reply.Author.ProfileUrl, forceLoad: true)">
+                                                    @reply.Author.FullName
                                                 </a>
                                                 <div class="metadata" style="display: inline;margin-left: 2%;">
-                                                    @if (repliedReply.Author.Id == User.Id)
+                                                    @if (reply.Author.Id == User.Id)
                                                     {
-                                                        <div class="ui tiny text menu"
-                                                             style="display: inline-flex; float: right;min-height: 0; margin-bottom: 0; margin-top: 0;">
-                                                            <div class="ui dropdown item" id="comment-menu-@commentIndex">
-                                                                <i class="ellipsis horizontal icon"></i>
-                                                                <div class="menu">
-                                                                    <div class="item" @onclick="() => OpenEditReplyToReplySection(repliedReply)">Edit</div>
-                                                                    <div class="item" @onclick="async () => await DeleteComment(repliedReply.Id)">Delete</div>
-                                                                </div>
-                                                            </div>
-                                                        </div>
+                                                        <HarmDropdown Id=@($"comment-menu-{commentIndex}")
+                                                                      Type=DropdownType.Reply
+                                                                      OnHarmComments=@UpdateHarmCommentsValue
+                                                                      OnReplyBeingEdited=@UpdateReplyBeingEditedValue
+                                                                      Comment=@reply
+                                                                      PostBeingCommented=@postBeingCommented/>
                                                         @IncrementComment()
                                                     }
                                                     @* TODO create shared method for getting today, yesterday strings *@
-                                                    @if (repliedReply.EditedAt == null)
+                                                    @if (reply.EditedAt == null)
                                                     {
-                                                        <span class="date" style="display: inline-flex; float: right;margin-top: 0.2em;">@repliedReply.PostedAt</span>
+                                                        <span class="date" style="display: inline-flex; float: right;margin-top: 0.2em;">@reply.PostedAt</span>
                                                     }
                                                     else
                                                     {
-                                                        <span class="date" style="display: inline-flex; float: right;margin-top: 0.2em;">@repliedReply.EditedAt</span>
+                                                        <span class="date" style="display: inline-flex; float: right;margin-top: 0.2em;">@reply.EditedAt</span>
                                                         <div class="ui yellow circular tiny label" style="margin-right: 2%; display: inline-flex; float: right;">
                                                             Edited
                                                         </div>
                                                     }
                                                 </div>
                                                 <div class="text">
-                                                    @repliedReply.Content
+                                                    @reply.Content
                                                 </div>
                                                 <div class="actions">
                                                     <div class="reply">
-                                                        @RenderLikeSection(repliedReply)
+                                                        @RenderLikeSection(reply)
+                                                        <a class="reply" @onclick="() => OpenAddReplyToReplySection(reply)">
+                                                            <i class="reply icon"></i>Reply
+                                                        </a>
                                                     </div>
                                                 </div>
                                             </div>
-                                        </div>
-                                        @if (repliedReply.IsEditReplyToReplySectionEnabled)
-                                        {
-                                            <div class="comments">
-                                                <form class="ui reply form">
-                                                    <div class="field">
-                                                        <textarea @oninput="HandleEditCommentOnChange" value="@TextEditCommentAreaValue"></textarea>
-                                                    </div>
-                                                    <div class="ui blue labeled icon button"
-                                                         @onclick="async () => await EditComment()">
-                                                        <i class="icon comments"></i>Edit comment
-                                                    </div>
-                                                    <div class="ui dimmer" id="comment-dimmer">
-                                                        <div class="content">
-                                                            <h2 class="ui inverted icon header">
-                                                                <i class="check icon"></i>
-                                                                Comment edited!
-                                                            </h2>
+                                            @if (reply.Replies.Count > 0)
+                                            {
+                                                <div class="comments">
+                                                    @foreach (var repliedReply in reply.Replies.OrderBy(c => c.PostedAt))
+                                                    {
+                                                        <div class="comment ui segment"
+                                                             style="padding: 2%;margin-top: 2%;">
+                                                            <a class="avatar">
+                                                                <img src="@repliedReply.Author.AvatarSource">
+                                                            </a>
+                                                            <div class="content" style="padding-top: 0;">
+                                                                <a class="author"
+                                                                   @onclick="() => Navigation.NavigateTo(repliedReply.Author.ProfileUrl, forceLoad: true)">
+                                                                    @repliedReply.Author.FullName
+                                                                </a>
+                                                                <div class="metadata" style="display: inline;margin-left: 2%;">
+                                                                    @if (repliedReply.Author.Id == User.Id)
+                                                                    {
+                                                                        <HarmDropdown Id=@($"comment-menu-{commentIndex}")
+                                                                                      Type=DropdownType.ReplyToReply
+                                                                                      OnHarmComments=@UpdateHarmCommentsValue
+                                                                                      OnReplyToReplyBeingEdited=@UpdateReplyToReplyBeingEditedValue
+                                                                                      Comment=@repliedReply
+                                                                                      PostBeingCommented=@postBeingCommented/>
+                                                                        @IncrementComment()
+                                                                    }
+                                                                    @* TODO create shared method for getting today, yesterday strings *@
+                                                                    @if (repliedReply.EditedAt == null)
+                                                                    {
+                                                                        <span class="date" style="display: inline-flex; float: right;margin-top: 0.2em;">@repliedReply.PostedAt</span>
+                                                                    }
+                                                                    else
+                                                                    {
+                                                                        <span class="date" style="display: inline-flex; float: right;margin-top: 0.2em;">@repliedReply.EditedAt</span>
+                                                                        <div class="ui yellow circular tiny label" style="margin-right: 2%; display: inline-flex; float: right;">
+                                                                            Edited
+                                                                        </div>
+                                                                    }
+                                                                </div>
+                                                                <div class="text">
+                                                                    @repliedReply.Content
+                                                                </div>
+                                                                <div class="actions">
+                                                                    <div class="reply">
+                                                                        @RenderLikeSection(repliedReply)
+                                                                    </div>
+                                                                </div>
+                                                            </div>
                                                         </div>
-                                                    </div>
-                                                </form>
-                                            </div>
-                                        }
+                                                        @if (repliedReply.IsEditReplyToReplySectionEnabled)
+                                                        {
+                                                            <EditCommentInput PostBeingCommented=@postBeingCommented
+                                                                              CommentBeingEdited=@repliedReply
+                                                                              OnHarmComments=@UpdateHarmCommentsValue
+                                                                              OnCommentIndex=@UpdateCommentIndexValue
+                                                                              OnGetDropdownIndexes=@UpdateGetDropdown/>
+                                                        }
+                                                    }
+                                                </div>
+                                            }
+                                            @if (reply.IsReplyToReplySectionEnabled)
+                                            {
+                                                    <ReplyInput PostBeingCommented=@postBeingCommented
+                                                                ParentComment=@reply
+                                                                OnHarmComments=@UpdateHarmCommentsValue
+                                                                OnCommentIndex=@UpdateCommentIndexValue
+                                                                OnGetDropdownIndexes=@UpdateGetDropdown/>
+                                            }
+                                            @if (reply.IsEditReplySectionEnabled)
+                                            {
+                                                <EditCommentInput PostBeingCommented=@postBeingCommented
+                                                                  CommentBeingEdited=@reply
+                                                                  OnHarmComments=@UpdateHarmCommentsValue
+                                                                  OnCommentIndex=@UpdateCommentIndexValue
+                                                                  OnGetDropdownIndexes=@UpdateGetDropdown/>
+                                            }
+                                        </div>
                                     }
                                 </div>
                             }
-                            @if (reply.IsReplyToReplySectionEnabled)
+                            @if (comment.IsReplySectionEnabled)
                             {
-                                <div class="comments">
-                                    <form class="ui reply form">
-                                        <div class="field">
-                                            <textarea @oninput="HandleAddReplyOnChange" value="@TextAddReplyAreaValue"></textarea>
-                                        </div>
-                                        <div class="ui blue labeled icon button"
-                                             @onclick="async () => await AddReply(reply)">
-                                            <i class="icon comments"></i>Add reply
-                                        </div>
-                                        <div class="ui dimmer" id="comment-dimmer">
-                                            <div class="content">
-                                                <h2 class="ui inverted icon header">
-                                                    <i class="check icon"></i>
-                                                    Reply published!
-                                                </h2>
-                                            </div>
-                                        </div>
-                                    </form>
-                                </div>
+                                <ReplyInput PostBeingCommented=@postBeingCommented
+                                            ParentComment=@comment
+                                            OnHarmComments=@UpdateHarmCommentsValue
+                                            OnCommentIndex=@UpdateCommentIndexValue
+                                            OnGetDropdownIndexes=@UpdateGetDropdown/>
+                                    @* <form class="ui reply form"> *@
+                                    @*     <div class="field"> *@
+                                    @*         <textarea @oninput="HandleAddReplyOnChange" value="@TextAddReplyAreaValue"></textarea> *@
+                                    @*     </div> *@
+                                    @*     <div class="ui blue labeled icon button" *@
+                                    @*          @onclick="async () => await AddReply(comment)"> *@
+                                    @*         <i class="icon comments"></i>Add reply *@
+                                    @*     </div> *@
+                                    @*     <div class="ui dimmer" id="comment-dimmer"> *@
+                                    @*         <div class="content"> *@
+                                    @*             <h2 class="ui inverted icon header"> *@
+                                    @*                 <i class="check icon"></i> *@
+                                    @*                 Reply published! *@
+                                    @*             </h2> *@
+                                    @*         </div> *@
+                                    @*     </div> *@
+                                    @* </form> *@
                             }
-                            @if (reply.IsEditReplySectionEnabled)
+                            @if (comment.IsEditCommentSectionEnabled)
                             {
-                                <div class="comments">
-                                    <form class="ui reply form">
-                                        <div class="field">
-                                            <textarea @oninput="HandleEditCommentOnChange" value="@TextEditCommentAreaValue"></textarea>
-                                        </div>
-                                        <div class="ui blue labeled icon button"
-                                             @onclick="async () => await EditComment()">
-                                            <i class="icon comments"></i>Edit comment
-                                        </div>
-                                        <div class="ui dimmer" id="comment-dimmer">
-                                            <div class="content">
-                                                <h2 class="ui inverted icon header">
-                                                    <i class="check icon"></i>
-                                                    Comment edited!
-                                                </h2>
-                                            </div>
-                                        </div>
-                                    </form>
-                                </div>
+                                <EditCommentInput PostBeingCommented=@postBeingCommented
+                                                  CommentBeingEdited=@comment
+                                                  OnHarmComments=@UpdateHarmCommentsValue
+                                                  OnCommentIndex=@UpdateCommentIndexValue
+                                                  OnGetDropdownIndexes=@UpdateGetDropdown/>
                             }
                         </div>
                     }
-                </div>
+                }
             }
-            @if (comment.IsReplySectionEnabled)
-            {
-                <div class="comments">
-                    <form class="ui reply form">
-                        <div class="field">
-                            <textarea @oninput="HandleAddReplyOnChange" value="@TextAddReplyAreaValue"></textarea>
-                        </div>
-                        <div class="ui blue labeled icon button"
-                             @onclick="async () => await AddReply(comment)">
-                            <i class="icon comments"></i>Add reply
-                        </div>
-                        <div class="ui dimmer" id="comment-dimmer">
-                            <div class="content">
-                                <h2 class="ui inverted icon header">
-                                    <i class="check icon"></i>
-                                    Reply published!
-                                </h2>
-                            </div>
-                        </div>
-                    </form>
-                </div>
-            }
-            @if (comment.IsEditCommentSectionEnabled)
-            {
-                <div class="comments">
-                    <form class="ui reply form">
-                        <div class="field">
-                            <textarea @oninput="HandleEditCommentOnChange" value="@TextEditCommentAreaValue"></textarea>
-                        </div>
-                        <div class="ui blue labeled icon button"
-                             @onclick="async () => await EditComment()">
-                            <i class="icon comments"></i>Edit comment
-                        </div>
-                        <div class="ui dimmer" id="comment-dimmer">
-                            <div class="content">
-                                <h2 class="ui inverted icon header">
-                                    <i class="check icon"></i>
-                                    Comment edited!
-                                </h2>
-                            </div>
-                        </div>
-                    </form>
-                </div>
-            }
-            </div>
-        }
-    }
-}
-<form class="ui reply form">
-    <div class="field">
-        <textarea @oninput="HandleAddCommentOnChange" value="@TextAddCommentAreaValue"></textarea>
-    </div>
-    <div class="ui blue labeled icon button"
-         @onclick="async () => await AddComment()">
-        <i class="icon comments"></i>Add comment
-    </div>
-    <div class="ui dimmer" id="comment-dimmer">
-        <div class="content">
-            <h2 class="ui inverted icon header">
-                <i class="check icon"></i>
-                Comment published!
-            </h2>
+            <CommentInput PostBeingCommented=@postBeingCommented
+                          OnHarmComments=@UpdateHarmCommentsValue
+                          OnCommentIndex=@UpdateCommentIndexValue
+                          OnGetDropdownIndexes=@UpdateGetDropdown/>
         </div>
     </div>
-</form>
-</div>
-</div>
-<div class="actions">
-    <div class="ui red cancel button" @onclick="CloseAddCommentModal">Close</div>
-</div>
+    <div class="actions">
+        <div class="ui red cancel button" @onclick="CloseAddCommentModal">Close</div>
+    </div>
 </div>
 </Authorized>
 <NotAuthorized>
@@ -551,10 +424,6 @@
     private ICollection<PostDTO> MyFeed { get; set; }
 
     private ICollection<CommentDTO>? HarmComments { get; set; }
-
-    private string TextAreaValue { get; set; }
-
-    private string TextEditAreaValue { get; set; }
 
     private string TextAddReplyAreaValue { get; set; }
 
@@ -611,208 +480,14 @@
         }
     }
 
-    private void HandleOnChange(ChangeEventArgs args)
+    private void UpdateShowTextPostValue(bool value) => showTextPost = value;
+
+    private void UpdateShowEditTextPostValue(bool value) => showEditTextPost = value;
+
+    private void UpdatePostBeingEditedValue(PostDTO value) => postBeingEdited = value;
+
+    private void UpdateCommentBeingEditedValue(CommentDTO value)
     {
-        TextAreaValue = args.Value.ToString();
-    }
-
-    private void HandleEditOnChange(ChangeEventArgs args)
-    {
-        TextEditAreaValue = args.Value.ToString();
-    }
-
-    private void HandleAddCommentOnChange(ChangeEventArgs args)
-    {
-        TextAddCommentAreaValue = args.Value.ToString();
-    }
-
-    private void HandleEditCommentOnChange(ChangeEventArgs args)
-    {
-        TextEditCommentAreaValue = args.Value.ToString();
-    }
-
-    private void HandleAddReplyOnChange(ChangeEventArgs args)
-    {
-        TextAddReplyAreaValue = args.Value.ToString();
-    }
-
-    private void ShowEditTextPost(PostDTO post)
-    {
-        postBeingEdited = post;
-        TextEditAreaValue = post.Content!;
-        showEditTextPost = true;
-        showTextPost = false;
-        showImagePost = false;
-    }
-
-    private async Task UpdatePost()
-    {
-        if (!string.IsNullOrWhiteSpace(TextEditAreaValue))
-        {
-            var body = new
-            {
-                PostId = postBeingEdited!.Id,
-                Content = TextEditAreaValue,
-                EditedAt = DateTime.Now
-            };
-
-            var entity = await PostService.UpdateAsync(body);
-
-            if (entity == null)
-                await JsRuntime.InvokeVoidAsync(
-                    "errorToast",
-                    "Something went wrong, we couldn't update your harm.");
-            else
-            {
-                await JsRuntime.InvokeVoidAsync("toggleDimmer");
-                MyFeed = await PostService.GetMyFeedAsync(User.Id);
-                StateHasChanged();
-                await Task.Delay(1000);
-                showEditTextPost = false;
-            }
-        }
-        else
-            await JsRuntime.InvokeVoidAsync(
-                "errorToast",
-                "You can't save an empty harm!");
-    }
-
-    private async Task AddPost()
-    {
-        if (!string.IsNullOrWhiteSpace(TextAreaValue))
-        {
-            var body = new
-            {
-                Id = Guid.NewGuid(),
-                Type = PostType.Text,
-                Content = TextAreaValue,
-                PostedAt = DateTime.Now,
-                AuthorId = User.Id
-            };
-
-            var postId = await PostService.CreateAsync(body);
-
-            if (postId == null)
-                await JsRuntime.InvokeVoidAsync(
-                    "errorToast",
-                    "Post already exists!");
-            else
-            {
-                await JsRuntime.InvokeVoidAsync("toggleDimmer");
-                MyFeed = await PostService.GetMyFeedAsync(User.Id);
-                StateHasChanged();
-                await Task.Delay(1000);
-                showImagePost = false;
-                showTextPost = false;
-            }
-        }
-        else
-        {
-            await JsRuntime.InvokeVoidAsync(
-                "errorToast",
-                "You can't publish an empty harm!");
-        }
-    }
-
-    private async Task AddComment()
-    {
-        if (!string.IsNullOrWhiteSpace(TextAddCommentAreaValue))
-        {
-            var body = new
-            {
-                Id = Guid.NewGuid(),
-                Content = TextAddCommentAreaValue,
-                PostedAt = DateTime.Now,
-                PostId = postBeingCommented!.Id,
-                AuthorId = User.Id
-            };
-
-            var commentId = await CommentService.CreateAsync(body);
-
-            if (commentId == null)
-                await JsRuntime.InvokeVoidAsync(
-                    "errorToast",
-                    "Comment already exists!");
-            else
-            {
-                await JsRuntime.InvokeVoidAsync("toggleCommentDimmer");
-                commentIndex = 0; // reset counter in order to have small ID's for dropdowns
-                TextAddCommentAreaValue = "";
-                HarmComments = await CommentService
-                    .GetPostCommentsAsync(postBeingCommented.Id);
-
-                if (User.Id != postBeingCommented!.Author.Id)
-                {
-    //TODO create a shared method for this
-                    var notificationBody = new
-                    {
-                        Type = NotificationType.Comment,
-                        Description = $"{User.FullName} commented your harm.",
-                        MarkedAsSeen = false,
-                        ReceivedAt = DateTime.Now,
-                        ReferenceUrl = $"/Post/{postBeingCommented!.Id}",
-                        UserId = postBeingCommented!.Author.Id
-                    };
-
-                    await NotificationService.CreateAsync(notificationBody);
-                }
-
-                StateHasChanged();
-                for (int i = 0; i < index; i++)
-                    await JsRuntime
-                        .InvokeVoidAsync("dropdown", $"#comment-menu-{i}");
-            }
-        }
-        else
-        {
-            await JsRuntime.InvokeVoidAsync(
-                "errorToast",
-                "You can't publish an empty comment!");
-        }
-    }
-
-    private async Task EditComment()
-    {
-        if (!string.IsNullOrWhiteSpace(TextEditCommentAreaValue))
-        {
-            var body = new
-            {
-                commentBeingEdited!.Id,
-                Content = TextEditCommentAreaValue,
-                EditedAt = DateTime.Now
-            };
-
-            var commentId = await CommentService.UpdateAsync(body);
-
-            if (commentId == null)
-                await JsRuntime.InvokeVoidAsync(
-                    "errorToast",
-                    "Comment doesn't exists!");
-            else
-            {
-                await JsRuntime.InvokeVoidAsync("toggleCommentDimmer");
-                commentIndex = 0; // reset counter in order to have small ID's for dropdowns
-                TextEditCommentAreaValue = "";
-                HarmComments = await CommentService
-                    .GetPostCommentsAsync(postBeingCommented.Id);
-                StateHasChanged();
-                for (int i = 0; i < index; i++)
-                    await JsRuntime
-                        .InvokeVoidAsync("dropdown", $"#comment-menu-{i}");
-            }
-        }
-        else
-        {
-            await JsRuntime.InvokeVoidAsync(
-                "errorToast",
-                "You can't publish an empty comment!");
-        }
-    }
-
-    private async void OpenEditCommentSection(CommentDTO comment)
-    {
-        await JsRuntime.InvokeVoidAsync("hideCommentDimmer");
-
         if (commentBeingEdited != null)
         {
             commentBeingEdited.IsEditCommentSectionEnabled = false;
@@ -820,17 +495,15 @@
             commentBeingEdited.IsEditReplyToReplySectionEnabled = false;
         }
 
-        commentBeingEdited = HarmComments!.First(x => x.Id == comment.Id);
+        commentBeingEdited = HarmComments!.First(x => x.Id == value.Id);
         commentBeingEdited.IsEditCommentSectionEnabled = true;
         TextEditCommentAreaValue = commentBeingEdited.Content;
 
         StateHasChanged();
     }
 
-    private async void OpenEditReplySection(CommentDTO comment)
+    private void UpdateReplyBeingEditedValue(CommentDTO value)
     {
-        await JsRuntime.InvokeVoidAsync("hideCommentDimmer");
-
         if (commentBeingEdited != null)
         {
             commentBeingEdited.IsEditCommentSectionEnabled = false;
@@ -839,9 +512,9 @@
         }
 
         commentBeingEdited = HarmComments!
-            .First(x => x.Replies.Contains(comment))
+            .First(x => x.Replies.Contains(value))
             .Replies
-            .First(x => x.Id == comment.Id);
+            .First(x => x.Id == value.Id);
 
         commentBeingEdited.IsEditReplySectionEnabled = true;
         TextEditCommentAreaValue = commentBeingEdited.Content;
@@ -849,10 +522,8 @@
         StateHasChanged();
     }
 
-    private async void OpenEditReplyToReplySection(CommentDTO comment)
+    private void UpdateReplyToReplyBeingEditedValue(CommentDTO value)
     {
-        await JsRuntime.InvokeVoidAsync("hideCommentDimmer");
-
         if (commentBeingEdited != null)
         {
             commentBeingEdited.IsEditCommentSectionEnabled = false;
@@ -862,17 +533,47 @@
 
         commentBeingEdited = HarmComments!
             .First(x => x.Replies
-                .Any(y => y.Replies.Contains(comment)))
+                .Any(y => y.Replies.Contains(value)))
             .Replies
-            .First(y => y.Replies.Contains(comment))
+            .First(y => y.Replies.Contains(value))
             .Replies
-            .First(x => x.Id == comment.Id);
+            .First(x => x.Id == value.Id);
 
         commentBeingEdited.IsEditReplyToReplySectionEnabled = true;
         TextEditCommentAreaValue = commentBeingEdited.Content;
 
         StateHasChanged();
     }
+
+    private void UpdateMyFeedValue(ICollection<PostDTO> value)
+    {
+        MyFeed = value;
+        StateHasChanged();
+    }
+
+    private void UpdateHarmCommentsValue(ICollection<CommentDTO> value)
+    {
+        HarmComments = value;
+        StateHasChanged();
+    }
+
+    private async void UpdateGetDropdown(bool value)
+    {
+        if (value)
+        {
+            // Make sure that every dropdownId will be updated on DOM
+            await Task.Delay(500);
+            
+            var indexes = await JsRuntime
+                .InvokeAsync<int[]>("getDropdownIndexes");
+
+            foreach (var i in indexes)
+                await JsRuntime
+                    .InvokeVoidAsync("dropdown", $"#comment-menu-{i}");
+       }
+    }
+
+    private void UpdateCommentIndexValue(int value) => commentIndex = value;
 
     private async void OpenAddReplySection(CommentDTO comment)
     {
@@ -905,65 +606,6 @@
         commentBeingAdded.IsReplyToReplySectionEnabled = true;
 
         StateHasChanged();
-    }
-
-    private async Task AddReply(CommentDTO comment)
-    {
-        if (!string.IsNullOrWhiteSpace(TextAddReplyAreaValue))
-        {
-            var body = new
-            {
-                Id = Guid.NewGuid(),
-                Content = TextAddReplyAreaValue,
-                PostedAt = DateTime.Now,
-                ParentCommentId = comment.Id,
-                PostId = postBeingCommented!.Id,
-                AuthorId = User.Id
-            };
-
-            var commentId = await CommentService.CreateAsync(body);
-
-            if (commentId == null)
-                await JsRuntime.InvokeVoidAsync(
-                    "errorToast",
-                    "Comment already exists!");
-            else
-            {
-                comment.IsReplySectionEnabled = false;
-                TextAddCommentAreaValue = "";
-                TextAddReplyAreaValue = "";
-                commentIndex = 0; // reset counter in order to have small ID's for dropdowns
-                HarmComments = await CommentService
-                    .GetPostCommentsAsync(postBeingCommented.Id);
-
-                if (User.Id != comment.Author.Id)
-                {
-    //TODO create a shared method for this
-                    var notificationBody = new
-                    {
-                        Type = NotificationType.CommentReply,
-                        Description = $"{User.FullName} replied to your comment.",
-                        MarkedAsSeen = false,
-                        ReceivedAt = DateTime.Now,
-                        ReferenceUrl = $"/Post/{postBeingCommented!.Id}",
-                        UserId = comment.Author.Id
-                    };
-
-                    await NotificationService.CreateAsync(notificationBody);
-                }
-
-                StateHasChanged();
-                for (int i = 0; i < index; i++)
-                    await JsRuntime
-                        .InvokeVoidAsync("dropdown", $"#comment-menu-{i}");
-            }
-        }
-        else
-        {
-            await JsRuntime.InvokeVoidAsync(
-                "errorToast",
-                "You can't publish an empty reply!");
-        }
     }
 
     private object? Increment()
@@ -1079,42 +721,6 @@
         }
     }
 
-    private async Task DeletePost(Guid postId)
-    {
-        var wasRemoved = await PostService.DeleteAsync(postId);
-
-        if (!wasRemoved)
-            await JsRuntime.InvokeVoidAsync(
-                "errorToast",
-                "Something went wrong, we couldn't delete this post.");
-        else
-        {
-            await JsRuntime.InvokeVoidAsync(
-                "successToast",
-                "Your harm was deleted.");
-            MyFeed = await PostService.GetMyFeedAsync(User.Id);
-            StateHasChanged();
-        }
-    }
-
-    private async Task DeleteComment(Guid commentId)
-    {
-        var wasRemoved = await CommentService.DeleteAsync(commentId);
-
-        if (!wasRemoved)
-            await JsRuntime.InvokeVoidAsync(
-                "errorToast",
-                "Something went wrong, we couldn't delete your comment.");
-        else
-        {
-            await JsRuntime.InvokeVoidAsync(
-                "successToast",
-                "Your comment was deleted.");
-            HarmComments = await CommentService.GetPostCommentsAsync(postBeingCommented!.Id);
-            StateHasChanged();
-        }
-    }
-
     private async void ShowAddCommentModal(PostDTO post)
     {
         HarmComments = await CommentService.GetPostCommentsAsync(post.Id);
@@ -1176,7 +782,4 @@
                    <i class="like icon"></i>You like it
                </a>;
     }
-
-    //TODO 6.11.2023:
-    // 5. przepisanie postow i komentarzy na osobne komponenty
 }

@@ -1,0 +1,92 @@
+@using Harmonify.Client.Services.CommentService
+@using Harmonify.Client.Services.ApplicationUser
+@using Harmonify.Shared.DTO
+@inject IJSRuntime JsRuntime;
+
+<form class="ui reply form">
+    <div class="field">
+        <textarea @oninput="HandleEditCommentOnChange" value="@TextEditCommentAreaValue"></textarea>
+    </div>
+    <div class="ui blue labeled icon button"
+         @onclick="async () => await EditComment()">
+        <i class="icon comments"></i>Edit comment
+    </div>
+    <div class="ui dimmer" id="comment-dimmer">
+        <div class="content">
+            <h2 class="ui inverted icon header">
+                <i class="check icon"></i>
+                Comment edited!
+            </h2>
+        </div>
+    </div>
+</form>
+
+@code {
+    private string TextEditCommentAreaValue { get; set; }
+    
+    private void HandleEditCommentOnChange(ChangeEventArgs args) =>
+        TextEditCommentAreaValue = args.Value.ToString();
+    
+    [Parameter]
+    public EventCallback<ICollection<CommentDTO>> OnHarmComments { get; set; }
+    
+    [Parameter]
+    public EventCallback<int> OnCommentIndex { get; set; }
+    
+    [Parameter]
+    public EventCallback<bool> OnGetDropdownIndexes { get; set; }
+    
+    [Parameter]
+    public PostDTO PostBeingCommented { get; set; }
+    
+    [Parameter]
+    public CommentDTO CommentBeingEdited { get; set; }
+
+    [Inject]
+    public ICommentService CommentService { get; set; }
+    
+    protected override async Task OnInitializedAsync()
+    {
+        TextEditCommentAreaValue = CommentBeingEdited.Content;
+    }
+    
+    private async Task EditComment()
+    {
+        if (!string.IsNullOrWhiteSpace(TextEditCommentAreaValue))
+        {
+            var body = new
+            {
+                CommentBeingEdited!.Id,
+                Content = TextEditCommentAreaValue,
+                EditedAt = DateTime.Now
+            };
+
+            var commentId = await CommentService.UpdateAsync(body);
+
+            if (commentId == null)
+                await JsRuntime.InvokeVoidAsync(
+                    "errorToast",
+                    "Comment doesn't exists!");
+            else
+            {
+                await JsRuntime.InvokeVoidAsync("toggleCommentDimmer");
+                await OnCommentIndex.InvokeAsync(0); // reset counter in order to have small ID's for dropdowns
+                TextEditCommentAreaValue = "";
+                await OnHarmComments.InvokeAsync(await CommentService
+                    .GetPostCommentsAsync(PostBeingCommented.Id));
+                
+                StateHasChanged();
+                
+                // Intentionally not awaiting this call,
+                // as we want to dispose this component first
+                OnGetDropdownIndexes.InvokeAsync(true);
+            }
+        }
+        else
+        {
+            await JsRuntime.InvokeVoidAsync(
+                "errorToast",
+                "You can't publish an empty comment!");
+        }
+    }
+}

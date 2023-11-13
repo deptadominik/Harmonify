@@ -1,0 +1,106 @@
+@using Harmonify.Shared.Enums
+@using Harmonify.Client.Services.Post
+@using Harmonify.Shared.DTO
+@using Harmonify.Client.Services.ApplicationUser
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@inject IJSRuntime JsRuntime;
+
+<form class="ui reply form">
+    <div class="field">
+        <textarea @oninput="HandleOnChange" placeholder="Start typing..."></textarea>
+    </div>
+    <div @onclick="async () => await AddPost()"
+         class="ui blue labeled submit icon button"
+         style="padding-left: 2.5em!important;
+                    padding-right: 1em!important;">
+        <i class="icon edit"></i>Publish harm
+    </div>
+    <div
+        @onclick="async () => await OnShowTextPost.InvokeAsync(false)"
+        class="ui red labeled submit icon button"
+        style="padding-left: 2.5em!important;
+                    padding-right: 1em!important;">
+        <i class="icon window close outline"></i>Discard
+    </div>
+    <div class="ui dimmer" id="harm-dimmer">
+        <div class="content">
+            <h2 class="ui inverted icon header">
+                <i class="check icon"></i>
+                Harm published!
+            </h2>
+        </div>
+    </div>
+</form>
+
+
+@code {
+    private string TextAreaValue { get; set; }
+
+    private ApplicationUserDTO User { get; set; }
+
+    [Parameter]
+    public EventCallback<bool> OnShowTextPost { get; set; }
+    
+    [Parameter]
+    public EventCallback<ICollection<PostDTO>> OnMyFeed { get; set; }
+
+    [Inject]
+    public IApplicationUserService UserService { get; set; }
+
+    [Inject]
+    public IPostService PostService { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        var authState = await AuthenticationStateProvider
+            .GetAuthenticationStateAsync();
+
+        if (authState.User.Identity.Name != null)
+        {
+            User = await UserService
+                .GetUserByEmailAsync(authState.User.Identity?.Name);
+        }
+    }
+
+    private void HandleOnChange(ChangeEventArgs args)
+    {
+        TextAreaValue = args.Value.ToString();
+    }
+
+    private async Task AddPost()
+    {
+        if (!string.IsNullOrWhiteSpace(TextAreaValue))
+        {
+            var body = new
+            {
+                Id = Guid.NewGuid(),
+                Type = PostType.Text,
+                Content = TextAreaValue,
+                PostedAt = DateTime.Now,
+                AuthorId = User.Id
+            };
+
+            var postId = await PostService.CreateAsync(body);
+
+            if (postId == null)
+                await JsRuntime.InvokeVoidAsync(
+                    "errorToast",
+                    "Post already exists!");
+            else
+            {
+                await JsRuntime.InvokeVoidAsync("toggleDimmer");
+                await OnMyFeed
+                    .InvokeAsync(await PostService.GetMyFeedAsync(User.Id));
+                await Task.Delay(1000);
+                //showImagePost = false;
+                await OnShowTextPost.InvokeAsync(false);
+            }
+        }
+        else
+        {
+            await JsRuntime.InvokeVoidAsync(
+                "errorToast",
+                "You can't publish an empty harm!");
+        }
+    }
+}

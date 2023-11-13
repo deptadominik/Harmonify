@@ -1,0 +1,130 @@
+@using Harmonify.Shared.DTO
+@using Harmonify.Shared.Enums
+@using Harmonify.Client.Services.CommentService
+@using Harmonify.Client.Services.Notification
+@using Harmonify.Client.Services.ApplicationUser
+@inject IJSRuntime JsRuntime;
+@inject AuthenticationStateProvider AuthenticationStateProvider;
+
+<form class="ui reply form">
+    <div class="field">
+        <textarea @oninput="HandleAddReplyOnChange" value="@TextAreaValue"></textarea>
+    </div>
+    <div class="ui blue labeled icon button"
+         @onclick="async () => await AddReply(ParentComment)">
+        <i class="icon comments"></i>Add reply
+    </div>
+    <div class="ui dimmer" id="comment-dimmer">
+        <div class="content">
+            <h2 class="ui inverted icon header">
+                <i class="check icon"></i>
+                Reply published!
+            </h2>
+        </div>
+    </div>
+</form>
+
+@code {
+    private ApplicationUserDTO User { get; set; }
+    
+    private string TextAreaValue { get; set; }
+    
+    [Parameter]
+    public EventCallback<ICollection<CommentDTO>> OnHarmComments { get; set; }
+    
+    [Parameter]
+    public EventCallback<int> OnCommentIndex { get; set; }
+    
+    [Parameter]
+    public EventCallback<bool> OnGetDropdownIndexes { get; set; }
+
+    [Parameter]
+    public PostDTO PostBeingCommented { get; set; }
+    
+    [Parameter]
+    public CommentDTO ParentComment { get; set; }
+    
+    [Inject]
+    public ICommentService CommentService { get; set; }
+    
+    [Inject]
+    public IApplicationUserService UserService { get; set; }
+    
+    [Inject]
+    public INotificationService NotificationService { get; set; }
+    
+    protected override async Task OnInitializedAsync()
+    {
+        var authState = await AuthenticationStateProvider
+            .GetAuthenticationStateAsync();
+
+        if (authState.User.Identity.Name != null)
+        {
+            User = await UserService
+                .GetUserByEmailAsync(authState.User.Identity?.Name);
+        }
+    }
+    
+    private void HandleAddReplyOnChange(ChangeEventArgs args) =>
+        TextAreaValue = args.Value.ToString();
+    
+    private async Task AddReply(CommentDTO comment)
+    {
+        if (!string.IsNullOrWhiteSpace(TextAreaValue))
+        {
+            var body = new
+            {
+                Id = Guid.NewGuid(),
+                Content = TextAreaValue,
+                PostedAt = DateTime.Now,
+                ParentCommentId = comment.Id,
+                PostId = PostBeingCommented!.Id,
+                AuthorId = User.Id
+            };
+
+            var commentId = await CommentService.CreateAsync(body);
+
+            if (commentId == null)
+                await JsRuntime.InvokeVoidAsync(
+                    "errorToast",
+                    "Comment already exists!");
+            else
+            {
+                comment.IsReplySectionEnabled = false;
+                await OnCommentIndex.InvokeAsync(0); // reset counter in order to have small ID's for dropdowns
+                await OnHarmComments
+                    .InvokeAsync(await CommentService
+                        .GetPostCommentsAsync(PostBeingCommented.Id));
+
+                if (User.Id != comment.Author.Id)
+                {
+                    //TODO create a shared method for this
+                    var notificationBody = new
+                    {
+                        Type = NotificationType.CommentReply,
+                        Description = $"{User.FullName} replied to your comment.",
+                        MarkedAsSeen = false,
+                        ReceivedAt = DateTime.Now,
+                        ReferenceUrl = $"/Post/{PostBeingCommented!.Id}",
+                        UserId = comment.Author.Id
+                    };
+
+                    await NotificationService.CreateAsync(notificationBody);
+                }
+
+                StateHasChanged();
+                await Task.Delay(1000);
+
+                // Intentionally not awaiting this call,
+                // as we want to dispose this component first
+                OnGetDropdownIndexes.InvokeAsync(true);
+            }
+        }
+        else
+        {
+            await JsRuntime.InvokeVoidAsync(
+                "errorToast",
+                "You can't publish an empty reply!");
+        }
+    }
+}

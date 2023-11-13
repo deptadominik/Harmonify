@@ -1,0 +1,168 @@
+@using Harmonify.Shared.Enums
+@using Harmonify.Shared.DTO
+@using Harmonify.Client.Services.ApplicationUser
+@using Harmonify.Client.Services.CommentService
+@using Harmonify.Client.Services.Post
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@inject IJSRuntime JsRuntime;
+
+<div class="ui text menu"
+     style="display: inline-flex; float: right;
+                                 margin-left: 1%; min-height: 0; margin-bottom: 0; margin-top: 0;">
+    <div class="ui dropdown item" id="@Id">
+        <i class="ellipsis horizontal icon"></i>
+        <div class="menu">
+            @switch (Type)
+            {
+                case DropdownType.Post:
+                    <div class="item" @onclick="() => ShowEditTextPost(PostBeingEdited)">Edit</div>
+                    <div class="item" @onclick="async () => await DeletePost(PostBeingEdited.Id)">Delete</div>
+                    break;
+                case DropdownType.Comment:
+                    <div class="item" @onclick="() => OpenEditCommentSection(Comment)">Edit</div>
+                    <div class="item" @onclick="async () => await DeleteComment(Comment.Id)">Delete</div>
+                    break;
+                case DropdownType.Reply:
+                
+                    <div class="item" @onclick="() => OpenEditReplySection(Comment)">Edit</div>
+                    <div class="item" @onclick="async () => await DeleteComment(Comment.Id)">Delete</div>
+                    break;
+                case DropdownType.ReplyToReply:
+                    <div class="item" @onclick="() => OpenEditReplyToReplySection(Comment)">Edit</div>
+                    <div class="item" @onclick="async () => await DeleteComment(Comment.Id)">Delete</div>
+                    break;
+            }
+        </div>
+    </div>
+</div>
+
+@code {
+    
+    private ApplicationUserDTO User { get; set; }
+    
+    [Parameter]
+    public string Id { get; set; }
+    
+    [Parameter]
+    public DropdownType Type { get; set; }
+    
+    [Parameter]
+    public PostDTO PostBeingEdited { get; set; }
+    
+    [Parameter]
+    public PostDTO PostBeingCommented { get; set; }
+    
+    [Parameter]
+    public CommentDTO Comment { get; set; }
+    
+    [Parameter]
+    public EventCallback<bool> OnShowTextPost { get; set; }
+    
+    [Parameter]
+    public EventCallback<bool> OnShowEditTextPost { get; set; }
+    
+    [Parameter]
+    public EventCallback<PostDTO> OnPostBeingEdited { get; set; }
+    
+    [Parameter]
+    public EventCallback<CommentDTO> OnCommentBeingEdited { get; set; }
+    
+    [Parameter]
+    public EventCallback<CommentDTO> OnReplyBeingEdited { get; set; }
+    
+    [Parameter]
+    public EventCallback<CommentDTO> OnReplyToReplyBeingEdited { get; set; }
+    
+    [Parameter]
+    public EventCallback<ICollection<PostDTO>> OnMyFeed { get; set; }
+    
+    [Parameter]
+    public EventCallback<ICollection<CommentDTO>> OnHarmComments { get; set; }
+    
+    [Inject]
+    public IApplicationUserService UserService { get; set; }
+    
+    [Inject]
+    public ICommentService CommentService { get; set; }
+
+    [Inject]
+    public IPostService PostService { get; set; }
+    
+    protected override async Task OnInitializedAsync()
+    {
+        var authState = await AuthenticationStateProvider
+            .GetAuthenticationStateAsync();
+
+        if (authState.User.Identity.Name != null)
+        {
+            User = await UserService
+                .GetUserByEmailAsync(authState.User.Identity?.Name);
+        }
+    }
+    
+    private async void ShowEditTextPost(PostDTO post)
+    {
+        await OnPostBeingEdited.InvokeAsync(post);
+        await OnShowTextPost.InvokeAsync(false);
+        await OnShowEditTextPost.InvokeAsync(true);
+        //showImagePost = false;
+    }
+    
+    private async Task DeletePost(Guid postId)
+    {
+        var wasRemoved = await PostService.DeleteAsync(postId);
+
+        if (!wasRemoved)
+            await JsRuntime.InvokeVoidAsync(
+                "errorToast",
+                "Something went wrong, we couldn't delete this post.");
+        else
+        {
+            await JsRuntime.InvokeVoidAsync(
+                "successToast",
+                "Your harm was deleted.");
+            await OnMyFeed
+                .InvokeAsync(await PostService.GetMyFeedAsync(User.Id));
+        }
+    }
+    
+    private async void OpenEditCommentSection(CommentDTO comment)
+    {
+        await JsRuntime.InvokeVoidAsync("hideCommentDimmer");
+
+        await OnCommentBeingEdited.InvokeAsync(comment);
+    }
+
+    private async void OpenEditReplySection(CommentDTO comment)
+    {
+        await JsRuntime.InvokeVoidAsync("hideCommentDimmer");
+        
+        await OnReplyBeingEdited.InvokeAsync(comment);
+    }
+    
+    private async void OpenEditReplyToReplySection(CommentDTO comment)
+    {
+        await JsRuntime.InvokeVoidAsync("hideCommentDimmer");
+        
+        await OnReplyToReplyBeingEdited.InvokeAsync(comment);
+    }
+    
+    private async Task DeleteComment(Guid commentId)
+    {
+        var wasRemoved = await CommentService.DeleteAsync(commentId);
+
+        if (!wasRemoved)
+            await JsRuntime.InvokeVoidAsync(
+                "errorToast",
+                "Something went wrong, we couldn't delete your comment.");
+        else
+        {
+            await JsRuntime.InvokeVoidAsync(
+                "successToast",
+                "Your comment was deleted.");
+            await OnHarmComments
+                .InvokeAsync(await CommentService
+                    .GetPostCommentsAsync(PostBeingCommented.Id));
+        }
+    }
+}
