@@ -3,8 +3,10 @@
 @using Harmonify.Client.Services.ApplicationUser
 @using Harmonify.Client.Services.CommentService
 @using Harmonify.Client.Services.Post
+@using Harmonify.Client.Helpers
 @inject AuthenticationStateProvider AuthenticationStateProvider
 @inject IJSRuntime JsRuntime;
+@inject AzureStorageHelper _ash;
 
 <div class="ui text menu"
      style="display: inline-flex; float: right;
@@ -16,6 +18,10 @@
             {
                 case DropdownType.Post:
                     <div class="item" @onclick="() => ShowEditTextPost(PostBeingEdited)">Edit</div>
+                    <div class="item" @onclick="async () => await DeletePost(PostBeingEdited.Id)">Delete</div>
+                    break;
+                case DropdownType.Image:
+                    <div class="item" @onclick="() => ShowEditImagePost(PostBeingEdited)">Edit</div>
                     <div class="item" @onclick="async () => await DeletePost(PostBeingEdited.Id)">Delete</div>
                     break;
                 case DropdownType.Comment:
@@ -59,7 +65,13 @@
     public EventCallback<bool> OnShowTextPost { get; set; }
     
     [Parameter]
+    public EventCallback<bool> OnShowImagePost { get; set; }
+    
+    [Parameter]
     public EventCallback<bool> OnShowEditTextPost { get; set; }
+    
+    [Parameter]
+    public EventCallback<bool> OnShowEditImagePost { get; set; }
     
     [Parameter]
     public EventCallback<PostDTO> OnPostBeingEdited { get; set; }
@@ -104,8 +116,18 @@
     {
         await OnPostBeingEdited.InvokeAsync(post);
         await OnShowTextPost.InvokeAsync(false);
+        await OnShowImagePost.InvokeAsync(false);
         await OnShowEditTextPost.InvokeAsync(true);
-        //showImagePost = false;
+        await OnShowEditImagePost.InvokeAsync(false);
+    }
+    
+    private async void ShowEditImagePost(PostDTO post)
+    {
+        await OnPostBeingEdited.InvokeAsync(post);
+        await OnShowTextPost.InvokeAsync(false);
+        await OnShowImagePost.InvokeAsync(false);
+        await OnShowEditTextPost.InvokeAsync(false);
+        await OnShowEditImagePost.InvokeAsync(true);
     }
     
     private async Task DeletePost(Guid postId)
@@ -118,6 +140,9 @@
                 "Something went wrong, we couldn't delete this post.");
         else
         {
+            foreach (var image in PostBeingEdited.Images)
+                await _ash.DeleteImageFromAzure(image.Name);
+            
             await JsRuntime.InvokeVoidAsync(
                 "successToast",
                 "Your harm was deleted.");

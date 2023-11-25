@@ -54,7 +54,7 @@
                             </div>
                             <div class="content" style="padding-top: 0 !important;">
                                 <div class="date">
-                                    @GetDate(notification.ReceivedAt)
+                                    <span>@Index.GetDate(notification.ReceivedAt)</span>
                                 </div>
                                 <a class="summary" href="@notification.ReferenceUrl">
                                     @notification.Description
@@ -102,7 +102,7 @@
                             </div>
                             <div class="content" style="padding-top: 0 !important;">
                                 <div class="date">
-                                    @GetDate(notification.ReceivedAt)
+                                    <span>@Index.GetDate(notification.ReceivedAt)</span>
                                 </div>
                                 <a class="summary" href="@notification.ReferenceUrl">
                                     @notification.Description
@@ -169,42 +169,6 @@
             await JsRuntime.InvokeVoidAsync("openNag");
     }
 
-    private RenderFragment GetDate(DateTime receivedAt)
-    {
-        var ts = DateTime.Now.Subtract(receivedAt);
-
-        if (ts.TotalMinutes < 1)
-        {
-            return @<span>Just now</span>;
-        }
-        if (ts.TotalMinutes < 2)
-        {
-            return @<span>1 minute ago</span>;
-        }
-        if (ts.TotalHours < 1)
-        {
-            return @<span>@ts.Minutes minutes ago</span>;
-        }
-        if (ts.TotalHours < 2)
-        {
-            return @<span>1 hour ago</span>;
-        }
-        if (ts.TotalDays < 1)
-        {
-            return @<span>@ts.Hours hours ago</span>;
-        }
-        if (ts.TotalDays is >= 1 and < 2)
-        {
-            return @<span>1 day ago</span>;
-        }
-        if (ts.TotalDays is >= 2 and < 3)
-        {
-            return @<span>2 days ago</span>;
-        }
-
-        return @<span>@receivedAt.ToString("dd/MM/yyyy")</span>;
-    }
-
     private async Task MarkAsSeen(Guid notificationId)
     {
         var body = new
@@ -229,5 +193,4 @@
 
         Navigation.NavigateTo("/Notifications", forceLoad: true);
     }
-
 }

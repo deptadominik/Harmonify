@@ -1,0 +1,169 @@
+@using Harmonify.Shared.DTO
+@using Harmonify.Shared.Models
+@using Harmonify.Client.Services.Post
+@using Harmonify.Client.Helpers
+@using Harmonify.Client.Services.PostImage
+@using NuGet.Packaging
+@inject IJSRuntime JsRuntime;
+@inject AzureStorageHelper _ash;
+
+@if (Files.Count >= 10)
+{
+    <div class="ui pointing below red basic label"
+         style="text-align: center; display: block;">
+        You've reached the maximum amount of images to upload.
+    </div>
+}
+<div class="ui file action input @(Files.Count >= 10 ? "disabled" : "")">
+    <InputFile id="action-file-input" class="@(Files.Count >= 10 ? "disabled" : "")" OnChange="@LoadFile" accept=".jpg, .png" multiple></InputFile>
+    <label for="action-file-input" class="margin-btm-harmonify ui harmonify-background-color button @(Files.Count >= 10 ? "disabled" : "")">
+        <i class="camera icon"></i>
+        Choose image...
+    </label>
+</div>
+@if (Files.Count > 0)
+{
+    <div class="ui small images">
+        @foreach (var image in Files)
+        {
+            <div class="ui fluid image">
+                <a class="ui red right corner label" @onclick="() => Files.Remove(image)">
+                    <i class="trash alternate icon"></i>
+                </a>
+                <img src="data:image/jpg;base64, @Convert.ToBase64String(image.Item1)">
+            </div>
+        }
+    </div>
+}
+<TextHarmInput OnPublish=@UpdatePublishValue
+               OnDiscard=@UpdateDiscardValue
+               OnPostId=@UpdatePostValue
+               IsImageInput=@_true
+               IsAnyImageUploaded=@_isAnyImageUploaded/>
+
+@code {
+    private bool _true = true;
+    
+    private bool _isAnyImageUploaded = false;
+    
+    private Guid postId;
+    
+    private List<(byte[], IBrowserFile)> selectedFiles = new();
+
+    private ICollection<(byte[], IBrowserFile)> Files { get; set; }
+
+    [Parameter]
+    public ApplicationUserDTO User { get; set; }
+
+    [Parameter]
+    public EventCallback<ICollection<PostDTO>> OnMyFeed { get; set; }
+
+    [Parameter]
+    public EventCallback<bool> OnShowImagePost { get; set; }
+
+    [Inject]
+    public IPostService PostService { get; set; }
+    
+    [Inject]
+    public IPostImageService PostImageService { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        Files = new List<(byte[], IBrowserFile)>();
+    }
+
+    private async void LoadFile(InputFileChangeEventArgs e)
+    {
+        var files = e.GetMultipleFiles();
+
+        foreach (var file in files)
+        {
+            if (file.Size > 4194304)
+            {
+                await JsRuntime.InvokeVoidAsync(
+                    "errorToast",
+                    "The size of the photo is too large - the allowed size is 4 MB");
+            }
+            else
+            {
+                var bytes = await ConvertFileToBytes(file);
+                selectedFiles.Add((bytes, file));
+            }
+        }
+
+        if (selectedFiles.Count >= 1)
+            _isAnyImageUploaded = true;
+
+        Files.Clear();
+        Files.AddRange(selectedFiles);
+
+        StateHasChanged();
+    }
+
+    private async void UpdatePublishValue(bool value)
+    {
+        if (value)
+        {
+            var images = new List<object>();
+            
+            foreach (var image in Files)
+            {
+                var uniqueImgName = image.Item2.Name + "_" + GenerateUniqueCharacters();
+                await JsRuntime.InvokeVoidAsync("console.log", image.Item2);
+                var url = await _ash.UploadFileToAzureAsync(image.Item1, uniqueImgName);
+                if (url == "")
+                    await JsRuntime
+                        .InvokeVoidAsync("errorToast", 
+                            $"We were not able to upload your photo ({image.Item2.Name})");
+                else
+                {
+                    await JsRuntime.InvokeVoidAsync("console.log", $"imageUrl: {url}");
+                    var entity = new
+                    {
+                        Id = Guid.NewGuid(),
+                        Url = url,
+                        Name = uniqueImgName,
+                        PostId = postId
+                    };
+                    images.Add(entity);
+                }
+            }
+
+            var PostImages = new
+            {
+                PostImages = images.ToArray()
+            };
+            var results = await PostImageService.CreateAsync(PostImages);
+            if (results.Count == 0)
+                await JsRuntime
+                    .InvokeVoidAsync("errorToast", 
+                        $"Something went wrong with uploading your photo(s).");
+            
+            await OnMyFeed
+                .InvokeAsync(await PostService.GetMyFeedAsync(User.Id));
+            await Task.Delay(1000);
+            await OnShowImagePost.InvokeAsync(false);
+        }
+    }
+
+    private async void UpdateDiscardValue(bool value) => await OnShowImagePost.InvokeAsync(value);
+
+    private async void UpdatePostValue(Guid value) => postId = value;
+
+    private async Task<byte[]> ConvertFileToBytes(IBrowserFile file)
+    {
+        using var memoryStream = new MemoryStream();
+        long maxAllowedSizeInBytes = 4194304;
+        await file.OpenReadStream(maxAllowedSizeInBytes).CopyToAsync(memoryStream);
+
+        return memoryStream.ToArray();
+    }
+    
+    private string GenerateUniqueCharacters()
+    {
+        string guid = Guid.NewGuid().ToString();
+        var split = guid.Split('-');
+        
+        return split[0];
+    }
+}

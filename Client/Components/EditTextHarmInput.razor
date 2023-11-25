@@ -14,11 +14,12 @@
                     padding-right: 1em!important;">
             <i class="icon edit"></i>Save harm
         </div>
-        <div @onclick="async () => await OnShowEditTextPost.InvokeAsync(false)"
+        <div @onclick="InvokeDiscard"
              class="ui red labeled submit icon button"
              style="padding-left: 2.5em!important;
                     padding-right: 1em!important;">
-            <i class="icon window close outline"></i>Discard
+            <i class="icon window close outline"
+               style="color: unset;text-shadow: unset;"></i>Discard
         </div>
         <div class="ui dimmer" id="harm-dimmer">
             <div class="content">
@@ -34,9 +35,21 @@
     private string TextEditAreaValue { get; set; }
 
     private ApplicationUserDTO User { get; set; }
+    
+    [Parameter]
+    public bool? IsEditImageInput { get; set; }
+    
+    [Parameter]
+    public EventCallback<bool> OnDiscard { get; set; }
+    
+    [Parameter]
+    public EventCallback<bool> OnPublish { get; set; }
 
     [Parameter]
     public EventCallback<bool> OnShowEditTextPost { get; set; }
+    
+    [Parameter]
+    public EventCallback<string> OnUpdateHarmTextContent { get; set; }
     
     [Parameter]
     public PostDTO PostBeingEdited { get; set; }
@@ -70,7 +83,12 @@
     
     private async Task UpdatePost()
     {
-        if (!string.IsNullOrWhiteSpace(TextEditAreaValue))
+        if (IsEditImageInput ?? false)
+        {
+            await OnUpdateHarmTextContent.InvokeAsync(TextEditAreaValue);
+            await OnPublish.InvokeAsync(true);
+        }
+        else if (!string.IsNullOrWhiteSpace(TextEditAreaValue))
         {
             var body = new
             {
@@ -98,5 +116,13 @@
             await JsRuntime.InvokeVoidAsync(
                 "errorToast",
                 "You can't save an empty harm!");
+    }
+    
+    private async void InvokeDiscard()
+    {
+        if (!IsEditImageInput ?? true)
+            await OnShowEditTextPost.InvokeAsync(false);
+        else
+            await OnDiscard.InvokeAsync(false);
     }
 }

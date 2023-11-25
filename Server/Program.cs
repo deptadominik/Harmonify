@@ -33,6 +33,7 @@ builder.Services.AddScoped<PostRepository>();
 builder.Services.AddScoped<PostLikeRepository>();
 builder.Services.AddScoped<CommentRepository>();
 builder.Services.AddScoped<CommentLikeRepository>();
+builder.Services.AddScoped<PostImageRepository>();
 
 builder.Services.AddDefaultIdentity<ApplicationUser>(options => options.SignIn.RequireConfirmedAccount = true)
     .AddEntityFrameworkStores<ApplicationDbContext>();

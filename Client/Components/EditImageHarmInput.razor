@@ -1,0 +1,216 @@
+@using Harmonify.Shared.DTO
+@using Harmonify.Shared.Models
+@using Harmonify.Client.Services.Post
+@using Harmonify.Client.Helpers
+@using Harmonify.Client.Services.PostImage
+@using NuGet.Packaging
+@inject IJSRuntime JsRuntime;
+@inject AzureStorageHelper _ash;
+
+@if (OriginalFiles.Count + newFiles.Count >= 10)
+{
+    <div class="ui pointing below red basic label"
+         style="text-align: center; display: block;">
+        You've reached the maximum amount of images to upload.
+    </div>
+}
+<div class="ui file action input @(OriginalFiles.Count + newFiles.Count >= 10 ? "disabled" : "")">
+    <InputFile id="action-file-input" class="@(OriginalFiles.Count + newFiles.Count >= 10 ? "disabled" : "")" OnChange="@LoadFile" accept=".jpg, .png" multiple></InputFile>
+    <label for="action-file-input" class="margin-btm-harmonify ui harmonify-background-color button @(OriginalFiles.Count + newFiles.Count>= 10 ? "disabled" : "")">
+        <i class="camera icon"></i>
+        Choose image...
+    </label>
+</div>
+@if (PostBeingEdited.Images.Count > 0)
+{
+    <div class="ui small images">
+        @foreach (var image in OriginalFiles)
+        {
+            <div class="ui fluid image">
+                <a class="ui red right corner label" @onclick="() => { OriginalFiles.Remove(image); ImagesToDelete.Add(image); }">
+                    <i class="trash alternate icon"></i>
+                </a>
+                <img src="@image.Url">
+            </div>
+        }
+        @foreach (var image in newFiles)
+        {
+            <div class="ui fluid image">
+                <a class="ui red right corner label" @onclick="() => newFiles.Remove(image)">
+                    <i class="trash alternate icon"></i>
+                </a>
+                <img src="data:image/jpg;base64, @Convert.ToBase64String(image.Item1)">
+            </div>
+        }
+    </div>
+}
+<EditTextHarmInput PostBeingEdited=@PostBeingEdited
+                   OnPublish=@UpdatePublishValue
+                   OnDiscard=@UpdateDiscardValue
+                   OnUpdateHarmTextContent=@UpdateEditedHarmText
+                   IsEditImageInput=@_true/>
+
+@code {
+    private bool _true = true;
+
+    private string _updatedHarmTextValue = "initialValue_123";
+
+    private List<(byte[], IBrowserFile)> newFiles = new();
+
+    private List<PostImage> OriginalFiles { get; set; } = new();
+    
+    private List<PostImage> ImagesToDelete { get; set; } = new();
+
+    [Parameter]
+    public ApplicationUserDTO User { get; set; }
+
+    [Parameter]
+    public PostDTO PostBeingEdited { get; set; }
+
+    [Parameter]
+    public EventCallback<ICollection<PostDTO>> OnMyFeed { get; set; }
+
+    [Parameter]
+    public EventCallback<bool> OnShowEditImagePost { get; set; }
+
+    [Inject]
+    public IPostService PostService { get; set; }
+
+    [Inject]
+    public IPostImageService PostImageService { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        foreach (var img in PostBeingEdited.Images)
+            OriginalFiles.Add(new PostImage
+            {
+                Id = img.Id,
+                Name = img.Name,
+                Post = img.Post,
+                PostId = img.PostId,
+                Url = img.Url
+            });
+    }
+
+    private async void LoadFile(InputFileChangeEventArgs e)
+    {
+        var files = e.GetMultipleFiles();
+
+        foreach (var file in files)
+        {
+            if (file.Size > 4194304)
+            {
+                await JsRuntime.InvokeVoidAsync(
+                    "errorToast",
+                    "The size of the photo is too large - the allowed size is 4 MB");
+            }
+            else
+            {
+                var bytes = await ConvertFileToBytes(file);
+                newFiles.Add((bytes, file));
+            }
+        }
+
+        StateHasChanged();
+    }
+
+    private async void UpdatePublishValue(bool value)
+    {
+        if (value)
+        {
+            if (OriginalFiles.Count == 0 && newFiles.Count == 0)
+                await JsRuntime.InvokeVoidAsync(
+                    "errorToast",
+                    "In order to update a harm with photo(s) you need to upload any photo first!");
+            else
+            {
+                var newImages = new List<PostImage>();
+
+                foreach (var image in newFiles)
+                {
+                    var uniqueImgName = image.Item2.Name + "_" + GenerateUniqueCharacters();
+                    var url = await _ash.UploadFileToAzureAsync(image.Item1, uniqueImgName);
+                    if (url == "")
+                        await JsRuntime
+                            .InvokeVoidAsync("errorToast",
+                                $"We were not able to upload your photo ({image.Item2.Name})");
+                    else
+                    {
+                        var entity = new PostImage
+                        {
+                            Id = Guid.NewGuid(),
+                            Url = url,
+                            Name = uniqueImgName,
+                            PostId = PostBeingEdited.Id
+                        };
+                        newImages.Add(entity);
+                    }
+                }
+
+                // Delete images
+                foreach (var image in ImagesToDelete)
+                {
+                    await PostImageService.DeleteAsync(image.Id);
+                    await _ash.DeleteImageFromAzure(image.Name);
+                }
+
+                if (newFiles.Count > 0)
+                {
+                    // Add new images
+                    var postImages = new
+                    {
+                        PostImages = newImages.ToArray()
+                    };
+                    var results = await PostImageService.CreateAsync(postImages);
+                    if (results.Count == 0)
+                        await JsRuntime
+                            .InvokeVoidAsync("errorToast", 
+                                "Something went wrong with uploading your new photo(s).");
+                }
+                 
+                // Update Post Content
+                var updatedHarmText = _updatedHarmTextValue == "initialValue_123"
+                    ? PostBeingEdited.Content
+                    : _updatedHarmTextValue;
+                var updatedEntity = new
+                {
+                    PostId = PostBeingEdited.Id,
+                    Content = updatedHarmText,
+                    EditedAt = DateTime.Now
+                };
+                var post = await PostService.UpdateAsync(updatedEntity);
+                if (post == null)
+                    await JsRuntime
+                        .InvokeVoidAsync("errorToast",
+                            "Something went wrong with updating your harm with photo(s).");
+
+                await JsRuntime.InvokeVoidAsync("toggleDimmer");
+                await OnMyFeed
+                    .InvokeAsync(await PostService.GetMyFeedAsync(User.Id));
+                await Task.Delay(1000);
+                await OnShowEditImagePost.InvokeAsync(false);
+            }
+        }
+    }
+
+    private async void UpdateDiscardValue(bool value) => await OnShowEditImagePost.InvokeAsync(value);
+
+    private void UpdateEditedHarmText(string value) => _updatedHarmTextValue = value;
+
+    private async Task<byte[]> ConvertFileToBytes(IBrowserFile file)
+    {
+        using var memoryStream = new MemoryStream();
+        long maxAllowedSizeInBytes = 4194304;
+        await file.OpenReadStream(maxAllowedSizeInBytes).CopyToAsync(memoryStream);
+
+        return memoryStream.ToArray();
+    }
+
+    private string GenerateUniqueCharacters()
+    {
+        var guid = Guid.NewGuid().ToString();
+        var split = guid.Split('-');
+
+        return split[0];
+    }
+}

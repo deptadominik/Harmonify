@@ -35,6 +35,7 @@ public class PostRepository
             .Include(p => p.Author).ThenInclude(a => a.Avatar)
             .Include(p => p.Likes)
             .ThenInclude(pl => pl.User)
+            .Include(p => p.Images)
             .OrderByDescending(p => p.PostedAt)
             .ToListAsync();
     }

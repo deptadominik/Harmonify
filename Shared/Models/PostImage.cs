@@ -6,6 +6,8 @@ public class PostImage
     
     public string Url { get; set; }
     
+    public string Name { get; set; }
+    
     public Guid PostId { get; set; }
     
     public Post Post { get; set; }

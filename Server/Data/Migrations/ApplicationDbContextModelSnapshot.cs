@@ -448,6 +448,10 @@ namespace Harmonify.Server.Data.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("TEXT");
 
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
                     b.Property<Guid>("PostId")
                         .HasColumnType("TEXT");
 

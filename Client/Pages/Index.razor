@@ -39,11 +39,11 @@
                    OnMyFeed=@UpdateMyFeedValue/>
 }
 
-@if (showEditTextPost)
+@if (showImagePost)
 {
-    <EditTextHarmInput OnShowEditTextPost=@UpdateShowEditTextPostValue
-                       OnMyFeed=@UpdateMyFeedValue
-                       PostBeingEdited=@postBeingEdited/>
+    <ImageHarmInput User=@User
+                    OnShowImagePost=@UpdateShowImagePostValue
+                    OnMyFeed=@UpdateMyFeedValue/>
 }
 
 <div class="ui feed">
@@ -51,43 +51,85 @@
     {
         @foreach (var post in MyFeed)
         {
-            <div class="event ui segment" style="padding-left: 2%;
-                                                 padding-right: 2%;">
+            <div class="event ui segment" style=@(post.Images.Count > 0 ? "padding: 2%;" : "padding-left: 2%;padding-right: 2%;")>
+                @if (post.Images.Count == 1)
+                {
+                    <div class="ui image col-md-6">
+                        <div class="carousel-inner">
+                            <div class="carousel-item active">
+                                <img class="d-block w-100" src="@post.Images.First().Url" alt="slide">
+                            </div>
+                        </div>
+                    </div>
+                }
+                else if (post.Images.Count >= 2)
+                {
+                    <div class="ui image col-md-6">
+                        <div id=@($"carousel-{post.Id}'") class="carousel slide" data-ride="carousel"
+                             style="max-width: 500px;">
+                            <ol class="carousel-indicators">
+                                @for (int i = 0; i < post.Images.Count; i++)
+                                {
+                                    <li data-target="carousel" data-slide-to="@i" class="@(i == 0 ? "active" : "")"></li>
+                                }
+                            </ol>
+                            <div class="carousel-inner">
+                                @for (int i = 0; i < post.Images.Count; i++)
+                                {
+                                    <div class="carousel-item @(i == 0 ? "active" : "")">
+                                        <img class="d-block w-100" src="@post.Images.ElementAt(i).Url" alt="slide">
+                                    </div>
+                                }
+                            </div>
+                            <a href=@($"#carousel-{post.Id}'") class="carousel-control-prev" role="button" data-slide="prev">
+                                <span class="carousel-control-prev-icon" aria-hidden="true"></span>
+                                <span class="sr-only">Previous</span>
+                            </a>
+                            <a href=@($"#carousel-{post.Id}'") class="carousel-control-next" role="button" data-slide="next">
+                                <span class="carousel-control-next-icon" aria-hidden="true"></span>
+                                <span class="sr-only">Next</span>
+                            </a>
+                        </div>
+                    </div>
+                }
                 <div class="label" style="align-self: center;">
                     <img src="@post.Author.AvatarSource">
                 </div>
-                <div class="content">
+                <div class=@(post.Images.Count > 0 ? "content col-md-6" : "content")
+                     style=@(post.Images.Count > 0 ? "margin: unset;" : "")>
                     <div class="summary">
                         <a>@post.Author.FirstName @post.Author.LastName</a> posted a harm
                         @if (post.Author.Id == User.Id)
                         {
-                            <HarmDropdown Id=@($"harm-menu-{commentIndex}")
-                                          Type=DropdownType.Post
+                            <HarmDropdown Id=@($"harm-menu-{index}")
+                                          Type=@(post.Type == PostType.Text ? DropdownType.Post : DropdownType.Image)
                                           OnMyFeed=@UpdateMyFeedValue
                                           OnShowTextPost=@UpdateShowTextPostValue
+                                          OnShowImagePost=@UpdateShowImagePostValue
                                           OnShowEditTextPost=@UpdateShowEditTextPostValue
+                                          OnShowEditImagePost=@UpdateShowEditImagePostValue
                                           OnPostBeingEdited="@UpdatePostBeingEditedValue"
                                           PostBeingEdited=@post/>
                             @Increment()
                         }
                         @if (post.EditedAt == null)
                         {
-                            <div class="date" style="margin-left: 2%;display: inline-flex; float: right;">
-                                On @post.PostedAt
+                            <div class="date" style="margin-left: 1%;display: inline-flex; float: right;">
+                                @GetDate(post.PostedAt)
                             </div>
                         }
                         else
                         {
-                            <div class="date" style="margin-left: 2%;display: inline-flex; float: right;">
-                                Edited at @post.EditedAt
+                            <span class="date" style="margin-left: 1%;display: inline-flex; float: right;">@GetDate(post.EditedAt.Value)</span>
+                            <div class="ui yellow circular tiny label" style="display: inline-flex; float: right;">
+                                Edited
                             </div>
                         }
                     </div>
                     <div class="extra text">
                         @post.Content
                     </div>
-                    <div class="meta">
-                        @* TODO create shared method *@
+                    <div class="meta" style=@(post.Images.Count > 0 ? "position: absolute; bottom: 0;" : "")>
                         @if (post.Likes.Count == 0)
                         {
                             <a class="like" @onclick="async () => await LikePost(post.Id, post.Author.Id)">
@@ -143,6 +185,19 @@
                     </div>
                 </div>
             </div>
+            @if (showEditTextPost && postBeingEdited.Id == post.Id)
+            {
+                <EditTextHarmInput OnShowEditTextPost=@UpdateShowEditTextPostValue
+                                   OnMyFeed=@UpdateMyFeedValue
+                                   PostBeingEdited=@postBeingEdited/>
+            }
+            @if (showEditImagePost && postBeingEdited.Id == post.Id)
+            {
+                <EditImageHarmInput OnShowEditImagePost=@UpdateShowEditImagePostValue
+                                   OnMyFeed=@UpdateMyFeedValue
+                                   User=@User
+                                   PostBeingEdited=@postBeingEdited/>
+            }
         }
     }
     else
@@ -152,7 +207,8 @@
         </div>
     }
 </div>
-<div class="ui modal" id="comments-modal" style="top: unset; left:  unset; height: unset;">
+<div class="ui modal" id="comments-modal"
+     style=@(postBeingCommented != null ? "top: unset;left: unset;right: unset;bottom: unset;height: unset;display: block !important;align-self: center;" : "")>
     <div class="header">Comments</div>
     <div class="scrolling content">
         <div class="ui comments" style="max-width: unset;">
@@ -183,14 +239,13 @@
                                                       PostBeingCommented=@postBeingCommented/>
                                         @IncrementComment()
                                     }
-                                    @* TODO create shared method for getting today, yesterday strings *@
                                     @if (comment.EditedAt == null)
                                     {
-                                        <span class="date" style="display: inline-flex; float: right;margin-top: 0.2em;">@comment.PostedAt</span>
+                                        <span class="date" style="display: inline-flex; float: right;margin-top: 0.2em;">@GetDate(comment.PostedAt)</span>
                                     }
                                     else
                                     {
-                                        <span class="date" style="display: inline-flex; float: right;margin-top: 0.2em;">@comment.EditedAt</span>
+                                        <span class="date" style="display: inline-flex; float: right;margin-top: 0.2em;">@GetDate(comment.EditedAt.Value)</span>
                                         <div class="ui yellow circular tiny label" style="margin-right: 2%; display: inline-flex; float: right;">
                                             Edited
                                         </div>
@@ -234,14 +289,13 @@
                                                                       PostBeingCommented=@postBeingCommented/>
                                                         @IncrementComment()
                                                     }
-                                                    @* TODO create shared method for getting today, yesterday strings *@
                                                     @if (reply.EditedAt == null)
                                                     {
-                                                        <span class="date" style="display: inline-flex; float: right;margin-top: 0.2em;">@reply.PostedAt</span>
+                                                        <span class="date" style="display: inline-flex; float: right;margin-top: 0.2em;">@GetDate(reply.PostedAt)</span>
                                                     }
                                                     else
                                                     {
-                                                        <span class="date" style="display: inline-flex; float: right;margin-top: 0.2em;">@reply.EditedAt</span>
+                                                        <span class="date" style="display: inline-flex; float: right;margin-top: 0.2em;">@GetDate(reply.EditedAt.Value)</span>
                                                         <div class="ui yellow circular tiny label" style="margin-right: 2%; display: inline-flex; float: right;">
                                                             Edited
                                                         </div>
@@ -285,14 +339,13 @@
                                                                                       PostBeingCommented=@postBeingCommented/>
                                                                         @IncrementComment()
                                                                     }
-                                                                    @* TODO create shared method for getting today, yesterday strings *@
                                                                     @if (repliedReply.EditedAt == null)
                                                                     {
-                                                                        <span class="date" style="display: inline-flex; float: right;margin-top: 0.2em;">@repliedReply.PostedAt</span>
+                                                                        <span class="date" style="display: inline-flex; float: right;margin-top: 0.2em;">@GetDate(repliedReply.PostedAt)</span>
                                                                     }
                                                                     else
                                                                     {
-                                                                        <span class="date" style="display: inline-flex; float: right;margin-top: 0.2em;">@repliedReply.EditedAt</span>
+                                                                        <span class="date" style="display: inline-flex; float: right;margin-top: 0.2em;">@GetDate(repliedReply.EditedAt.Value)</span>
                                                                         <div class="ui yellow circular tiny label" style="margin-right: 2%; display: inline-flex; float: right;">
                                                                             Edited
                                                                         </div>
@@ -321,11 +374,11 @@
                                             }
                                             @if (reply.IsReplyToReplySectionEnabled)
                                             {
-                                                    <ReplyInput PostBeingCommented=@postBeingCommented
-                                                                ParentComment=@reply
-                                                                OnHarmComments=@UpdateHarmCommentsValue
-                                                                OnCommentIndex=@UpdateCommentIndexValue
-                                                                OnGetDropdownIndexes=@UpdateGetDropdown/>
+                                                <ReplyInput PostBeingCommented=@postBeingCommented
+                                                            ParentComment=@reply
+                                                            OnHarmComments=@UpdateHarmCommentsValue
+                                                            OnCommentIndex=@UpdateCommentIndexValue
+                                                            OnGetDropdownIndexes=@UpdateGetDropdown/>
                                             }
                                             @if (reply.IsEditReplySectionEnabled)
                                             {
@@ -346,23 +399,6 @@
                                             OnHarmComments=@UpdateHarmCommentsValue
                                             OnCommentIndex=@UpdateCommentIndexValue
                                             OnGetDropdownIndexes=@UpdateGetDropdown/>
-                                    @* <form class="ui reply form"> *@
-                                    @*     <div class="field"> *@
-                                    @*         <textarea @oninput="HandleAddReplyOnChange" value="@TextAddReplyAreaValue"></textarea> *@
-                                    @*     </div> *@
-                                    @*     <div class="ui blue labeled icon button" *@
-                                    @*          @onclick="async () => await AddReply(comment)"> *@
-                                    @*         <i class="icon comments"></i>Add reply *@
-                                    @*     </div> *@
-                                    @*     <div class="ui dimmer" id="comment-dimmer"> *@
-                                    @*         <div class="content"> *@
-                                    @*             <h2 class="ui inverted icon header"> *@
-                                    @*                 <i class="check icon"></i> *@
-                                    @*                 Reply published! *@
-                                    @*             </h2> *@
-                                    @*         </div> *@
-                                    @*     </div> *@
-                                    @* </form> *@
                             }
                             @if (comment.IsEditCommentSectionEnabled)
                             {
@@ -410,6 +446,8 @@
     private bool showImagePost = false;
 
     private bool showEditTextPost = false;
+    
+    private bool showEditImagePost = false;
 
     private PostDTO? postBeingEdited = null;
 
@@ -482,7 +520,11 @@
 
     private void UpdateShowTextPostValue(bool value) => showTextPost = value;
 
+    private void UpdateShowImagePostValue(bool value) => showImagePost = value;
+
     private void UpdateShowEditTextPostValue(bool value) => showEditTextPost = value;
+    
+    private void UpdateShowEditImagePostValue(bool value) => showEditImagePost = value;
 
     private void UpdatePostBeingEditedValue(PostDTO value) => postBeingEdited = value;
 
@@ -561,16 +603,16 @@
     {
         if (value)
         {
-            // Make sure that every dropdownId will be updated on DOM
+    // Make sure that every dropdownId will be updated on DOM
             await Task.Delay(500);
-            
+
             var indexes = await JsRuntime
                 .InvokeAsync<int[]>("getDropdownIndexes");
 
             foreach (var i in indexes)
                 await JsRuntime
                     .InvokeVoidAsync("dropdown", $"#comment-menu-{i}");
-       }
+        }
     }
 
     private void UpdateCommentIndexValue(int value) => commentIndex = value;
@@ -735,12 +777,12 @@
     private async void CloseAddCommentModal()
     {
         HarmComments = Array.Empty<CommentDTO>();
-        postBeingCommented = null;
         TextAddCommentAreaValue = "";
         TextAddReplyAreaValue = "";
         commentIndex = 0;
         await JsRuntime.InvokeVoidAsync("hideCommentDimmer");
         StateHasChanged();
+        postBeingCommented = null;
     }
 
     private RenderFragment RenderLikeSection(CommentDTO comment)
@@ -782,4 +824,41 @@
                    <i class="like icon"></i>You like it
                </a>;
     }
+
+    public static string GetDate(DateTime value)
+    {
+        var ts = DateTime.Now.Subtract(value);
+
+        if (ts.TotalMinutes < 1)
+        {
+            return "Just now";
+        }
+        if (ts.TotalMinutes < 2)
+        {
+            return "1 minute ago";
+        }
+        if (ts.TotalHours < 1)
+        {
+            return $"{ts.Minutes} minutes ago";
+        }
+        if (ts.TotalHours < 2)
+        {
+            return "1 hour ago";
+        }
+        if (ts.TotalDays < 1)
+        {
+            return $"{ts.Hours} hours ago";
+        }
+        if (ts.TotalDays is >= 1 and < 2)
+        {
+            return "1 day ago";
+        }
+        if (ts.TotalDays is >= 2 and < 3)
+        {
+            return "2 days ago";
+        }
+
+        return value.ToString("dd/MM/yyyy");
+    }
+
 }

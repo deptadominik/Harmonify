@@ -16,11 +16,12 @@
         <i class="icon edit"></i>Publish harm
     </div>
     <div
-        @onclick="async () => await OnShowTextPost.InvokeAsync(false)"
+        @onclick="InvokeDiscard"
         class="ui red labeled submit icon button"
         style="padding-left: 2.5em!important;
-                    padding-right: 1em!important;">
-        <i class="icon window close outline"></i>Discard
+               padding-right: 1em!important;">
+        <i class="icon window close outline"
+           style="color: unset;text-shadow: unset;"></i>Discard
     </div>
     <div class="ui dimmer" id="harm-dimmer">
         <div class="content">
@@ -32,7 +33,6 @@
     </div>
 </form>
 
-
 @code {
     private string TextAreaValue { get; set; }
 
@@ -40,9 +40,24 @@
 
     [Parameter]
     public EventCallback<bool> OnShowTextPost { get; set; }
-    
+
     [Parameter]
     public EventCallback<ICollection<PostDTO>> OnMyFeed { get; set; }
+
+    [Parameter]
+    public EventCallback<bool> OnPublish { get; set; }
+    
+    [Parameter]
+    public EventCallback<bool> OnDiscard { get; set; }
+    
+    [Parameter]
+    public EventCallback<Guid> OnPostId { get; set; }
+
+    [Parameter]
+    public bool? IsImageInput { get; set; }
+    
+    [Parameter]
+    public bool? IsAnyImageUploaded { get; set; }
 
     [Inject]
     public IApplicationUserService UserService { get; set; }
@@ -69,32 +84,13 @@
 
     private async Task AddPost()
     {
-        if (!string.IsNullOrWhiteSpace(TextAreaValue))
+        if (!string.IsNullOrWhiteSpace(TextAreaValue) && (!IsImageInput ?? true))
         {
-            var body = new
-            {
-                Id = Guid.NewGuid(),
-                Type = PostType.Text,
-                Content = TextAreaValue,
-                PostedAt = DateTime.Now,
-                AuthorId = User.Id
-            };
-
-            var postId = await PostService.CreateAsync(body);
-
-            if (postId == null)
-                await JsRuntime.InvokeVoidAsync(
-                    "errorToast",
-                    "Post already exists!");
-            else
-            {
-                await JsRuntime.InvokeVoidAsync("toggleDimmer");
-                await OnMyFeed
-                    .InvokeAsync(await PostService.GetMyFeedAsync(User.Id));
-                await Task.Delay(1000);
-                //showImagePost = false;
-                await OnShowTextPost.InvokeAsync(false);
-            }
+            SendRequest(type: PostType.Text);
+        }
+        else if (IsImageInput ?? false)
+        {
+            SendRequest(type: PostType.Image);
         }
         else
         {
@@ -102,5 +98,55 @@
                 "errorToast",
                 "You can't publish an empty harm!");
         }
+    }
+
+    private async void SendRequest(PostType type)
+    {
+        if (IsAnyImageUploaded ?? true)
+        {
+            var body = new
+            {
+                Id = Guid.NewGuid(),
+                Type = type,
+                Content = TextAreaValue,
+                PostedAt = DateTime.Now,
+                AuthorId = User.Id
+            };
+
+            var postId = await PostService.CreateAsync(body);
+            
+            if (postId == null)
+                await JsRuntime.InvokeVoidAsync(
+                    "errorToast",
+                    "Post already exists!");
+            else
+            {
+                await JsRuntime.InvokeVoidAsync("toggleDimmer");
+                if (!IsImageInput ?? true)
+                {
+                    await OnMyFeed
+                        .InvokeAsync(await PostService.GetMyFeedAsync(User.Id));
+                    await Task.Delay(1000);
+                    await OnShowTextPost.InvokeAsync(false);
+                }
+                else
+                {
+                    await OnPostId.InvokeAsync(postId.Value);
+                    await OnPublish.InvokeAsync(true);
+                }
+            }
+        }
+        else
+            await JsRuntime.InvokeVoidAsync(
+                "errorToast",
+                "In order to create a harm with photo(s) you need to upload any photo first!");
+    }
+
+    private async void InvokeDiscard()
+    {
+        if (!IsImageInput ?? true)
+            await OnShowTextPost.InvokeAsync(false);
+        else
+            await OnDiscard.InvokeAsync(false);
     }
 }

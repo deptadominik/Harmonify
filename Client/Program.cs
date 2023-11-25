@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Components.Web;
 using Microsoft.AspNetCore.Components.WebAssembly.Authentication;
 using Microsoft.AspNetCore.Components.WebAssembly.Hosting;
 using Harmonify.Client;
+using Harmonify.Client.Helpers;
 using Harmonify.Client.Services.ApplicationUser;
 using Harmonify.Client.Services.AvatarImage;
 using Harmonify.Client.Services.CommentLike;
@@ -9,6 +10,7 @@ using Harmonify.Client.Services.CommentService;
 using Harmonify.Client.Services.Friendship;
 using Harmonify.Client.Services.Notification;
 using Harmonify.Client.Services.Post;
+using Harmonify.Client.Services.PostImage;
 using Harmonify.Client.Services.PostLike;
 
 var builder = WebAssemblyHostBuilder.CreateDefault(args);
@@ -30,6 +32,8 @@ builder.Services.AddScoped<IPostService, PostService>();
 builder.Services.AddScoped<IPostLikeService, PostLikeService>();
 builder.Services.AddScoped<ICommentService, CommentService>();
 builder.Services.AddScoped<ICommentLikeService, CommentLikeService>();
+builder.Services.AddScoped<IPostImageService, PostImageService>();
+builder.Services.AddScoped<AzureStorageHelper>();
 
 builder.Services.AddApiAuthorization();
 
