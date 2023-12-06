@@ -99,7 +99,26 @@ public class PostController : ControllerBase
     [HttpPatch("update")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
-    public async Task<ActionResult<Post?>> Update(UpdatePostCommand request)
+    public async Task<ActionResult<Post?>> Update(UpdatePostContentCommand request)
+    {
+        var post = await _mediator.Send(new GetPostQuery
+        {
+            PostId = request.PostId
+        });
+
+        if (post == null)
+            return BadRequest("Entity doesn't exist.");
+
+        var entity = await _mediator
+            .Send(request);
+        
+        return entity == null ? BadRequest("Something went wrong.") : Ok(entity);
+    }
+    
+    [HttpPatch("update/comments-count")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    public async Task<ActionResult<Post?>> Update(UpdateCommentsCountCommand request)
     {
         var post = await _mediator.Send(new GetPostQuery
         {

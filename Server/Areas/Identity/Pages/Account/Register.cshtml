@@ -3,6 +3,7 @@
 @{
     ViewData["Title"] = "Register";
 }
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css"/>
 
 <div class="ui middle aligned center aligned grid login-grid-mobile">
     <div class="column">
@@ -64,11 +65,11 @@
                     <span asp-validation-for="Input.PostalCode" class="text-danger"></span>
                 </div>
                 <div class="ui calendar field" id="date_calendar">
-                  <div class="ui input left icon">
-                    <i class="calendar icon"></i>
-                      <input type="text" placeholder="Date">
-                      <input id="SelectedDate" value="" type="hidden" asp-for="Input.SelectedDate" >
-                  </div>
+                    <div class="ui input left icon">
+                        <i class="calendar icon"></i>
+                        <input type="text" placeholder="Date">
+                        <input id="SelectedDate" value="" type="hidden" asp-for="Input.SelectedDate">
+                    </div>
                 </div>
                 <div class="field">
                     <div class="ui left icon input">
@@ -88,31 +89,14 @@
                 <div class="col-md-offset-2">
                     <section>
                         <hr/>
-                        @{
-                            if ((Model.ExternalLogins?.Count ?? 0) == 0)
+                        @foreach (var provider in Model.ExternalLogins)
+                        {
+                            if (provider.DisplayName.Equals("Google"))
                             {
-                                <div>
-                                    <p>
-                                        There are no external authentication services configured. See this
-                                        <a href="https://go.microsoft.com/fwlink/?LinkID=532715">
-                                            article
-                                            about setting up this ASP.NET application to support logging in via external services
-                                        </a>.
-                                    </p>
-                                </div>
-                            }
-                            else
-                            {
-                                <form id="external-account" asp-page="./ExternalLogin" asp-route-returnUrl="@Model.ReturnUrl" method="post" class="form-horizontal">
-                                    <div>
-                                        <p>
-                                            @foreach (var provider in Model.ExternalLogins!)
-                                            {
-                                                <button type="submit" class="btn btn-primary" name="provider" value="@provider.Name" title="Log in using your @provider.DisplayName account">@provider.DisplayName</button>
-                                            }
-                                        </p>
-                                    </div>
-                                </form>
+                                <button type="submit" class="fa fa-google" name="provider"
+                                        value="@provider.Name" title="Log in using your @provider.DisplayName account">
+                                    <span class="si-text">Register with Google</span>
+                                </button>
                             }
                         }
                     </section>
@@ -139,5 +123,4 @@
                        }
           });
     </script>
-
 }

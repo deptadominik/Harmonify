@@ -45,6 +45,8 @@
 @code {
     
     private ApplicationUserDTO User { get; set; }
+
+    private int _totalCommentCount;
     
     [Parameter]
     public string Id { get; set; }
@@ -182,12 +184,35 @@
                 "Something went wrong, we couldn't delete your comment.");
         else
         {
+            _totalCommentCount = 0;
+            var comments = await CommentService
+                .GetPostCommentsAsync(PostBeingCommented!.Id);
+            
+            foreach (var comment in comments)
+                CountCommentAndReplies(comment);
+            
+            var postBody = new
+            {
+                PostId = PostBeingCommented!.Id,
+                CommentsCount = _totalCommentCount
+            };
+            await PostService.UpdateCommentsCountAsync(postBody);
             await JsRuntime.InvokeVoidAsync(
                 "successToast",
                 "Your comment was deleted.");
             await OnHarmComments
-                .InvokeAsync(await CommentService
-                    .GetPostCommentsAsync(PostBeingCommented.Id));
+                .InvokeAsync(comments);
+        }
+    }
+    
+    private void CountCommentAndReplies(CommentDTO comment, int depth = 0)
+    {
+        _totalCommentCount++;
+        
+        if (comment.Replies != null && comment.Replies.Any())
+        {
+            foreach (var reply in comment.Replies)
+                CountCommentAndReplies(reply, depth + 1);
         }
     }
 }

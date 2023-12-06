@@ -66,7 +66,7 @@ public class PostRepository
         return await ctx.SaveChangesAsync() > 0;
     }
     
-    public async Task<bool> UpdateAsync(Post post)
+    public async Task<bool> UpdateContentAsync(Post post)
     {
         var entity = await ctx.Posts
             .FirstOrDefaultAsync(n => n.Id == post.Id);
@@ -76,6 +76,19 @@ public class PostRepository
 
         entity.Content = post.Content;
         entity.EditedAt = post.EditedAt;
+        
+        return await ctx.SaveChangesAsync() > 0;
+    }
+    
+    public async Task<bool> UpdateCommentsCountAsync(Post post)
+    {
+        var entity = await ctx.Posts
+            .FirstOrDefaultAsync(n => n.Id == post.Id);
+
+        if (entity == null)
+            return false;
+
+        entity.CommentsCount = post.CommentsCount;
         
         return await ctx.SaveChangesAsync() > 0;
     }

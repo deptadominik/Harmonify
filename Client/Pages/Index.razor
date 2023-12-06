@@ -144,43 +144,67 @@
                                 var userLike = post.Likes.First().User;
                                 <a class="like" @onclick="async () => await LikePost(post.Id, post.Author.Id)">
                                     <i class="like icon"></i>
-                                    <span>@userLike.FirstName @userLike.LastName likes it</span>
                                 </a>
+                                <span style="margin-left: 0;"><a @onclick="() => Navigation.NavigateTo(userLike.ProfileUrl, forceLoad: true)">
+                                    <b>@userLike.FullName</b>
+                                    </a> likes it
+                                </span>
                             }
                             else if (post.Likes.Count > 1 && post.Likes.All(x => x.UserId != User.Id))
                             {
                                 <a class="like" @onclick="async () => await LikePost(post.Id, post.Author.Id)">
                                     <i class="like icon"></i>
-                                    <span>@post.Likes.Count likes</span>
                                 </a>
+                                <span style="margin-left: 0;">
+                                    <a @onclick="() => ShowLikesModal(post)">
+                                        <b>@post.Likes.Count likes</b>
+                                    </a>
+                                </span>
                             }
                             else if (post.Likes.Count > 2)
                             {
                                 var count = post.Likes.Count - 1;
                                 <a class="like" @onclick="async () => await UnlikePost(post.Likes.First(x => x.UserId == User.Id).Id)">
-                                    <i class="like icon"></i>
-                                    <span>You and @count other people like it</span>
+                                    <i class="like icon red"></i>
                                 </a>
+                                <span style="margin-left: 0;">You and <a @onclick="() => ShowLikesModal(post)">
+                                    <b>@count other people</b>
+                                    </a> like it
+                                </span>
                             }
                             else if (post.Likes.Count == 2)
                             {
                                 var userLike = post.Likes.First(x => x.UserId != User.Id).User;
                                 <a class="like" @onclick="async () => await UnlikePost(post.Likes.First(x => x.UserId == User.Id).Id)">
-                                    <i class="like icon"></i>
-                                    <span>You and @userLike.FirstName @userLike.LastName like it</span>
+                                    <i class="like icon red"></i>
                                 </a>
+                                <span style="margin-left: 0;">You and <a @onclick="() => Navigation.NavigateTo(userLike.ProfileUrl, forceLoad: true)">
+                                    <b>@userLike.FullName</b>
+                                    </a> like it
+                                </span>
                             }
                             else
                             {
                                 <a class="like" @onclick="async () => await UnlikePost(post.Likes.First(x => x.UserId == User.Id).Id)">
-                                    <i class="like icon"></i>
-                                    <span>You like it</span>
+                                    <i class="like icon red"></i>
                                 </a>
+                                <span style="margin-left: 0;">You like it</span>
                             }
                         }
                         <div class="actions" style="display: inline-block;">
                             <i class="comment icon"></i>
-                            <a class="reply" @onclick="() => ShowAddCommentModal(post)">Comments</a>
+                            @switch (post.CommentsCount)
+                            {
+                                case 0:
+                                    <a class="reply" @onclick="() => ShowAddCommentModal(post)">Comment</a>
+                                    break;
+                                case 1:
+                                    <a class="reply" @onclick="() => ShowAddCommentModal(post)"> 1 comment</a>
+                                    break;
+                                default:
+                                    <a class="reply" @onclick="() => ShowAddCommentModal(post)">@post.CommentsCount comments</a>
+                                    break;
+                            }
                         </div>
                     </div>
                 </div>
@@ -194,9 +218,9 @@
             @if (showEditImagePost && postBeingEdited.Id == post.Id)
             {
                 <EditImageHarmInput OnShowEditImagePost=@UpdateShowEditImagePostValue
-                                   OnMyFeed=@UpdateMyFeedValue
-                                   User=@User
-                                   PostBeingEdited=@postBeingEdited/>
+                                    OnMyFeed=@UpdateMyFeedValue
+                                    User=@User
+                                    PostBeingEdited=@postBeingEdited/>
             }
         }
     }
@@ -207,6 +231,34 @@
         </div>
     }
 </div>
+<div class="ui modal" id="likes-modal"
+     style=@(postLikes != null ? "top: unset;left: unset;right: unset;bottom: unset;height: unset;display: block !important;align-self: center;width: unset;" : "")>
+    <div class="header">Likes</div>
+    <div class="scrolling content">
+        <div class="ui items" style="max-width: unset;">
+            @if (postLikes != null)
+            {
+                @foreach (var like in postLikes)
+                {
+                    <div class="item">
+                        <a class="ui tiny circular image" @onclick="() => Navigation.NavigateTo(like.User.ProfileUrl, forceLoad: true)">
+                            <img src="@like.User.AvatarSource">
+                        </a>
+                        <div class="middle aligned content">
+                            <div class="header">
+                                <a @onclick="() => Navigation.NavigateTo(like.User.ProfileUrl, forceLoad: true)">@like.User.FullName</a>
+                            </div>
+                        </div>
+                    </div>
+                }
+            }
+        </div>
+    </div>
+    <div class="actions">
+        <div class="ui red cancel button" @onclick="CloseLikesModal">Close</div>
+    </div>
+</div>
+
 <div class="ui modal" id="comments-modal"
      style=@(postBeingCommented != null ? "top: unset;left: unset;right: unset;bottom: unset;height: unset;display: block !important;align-self: center;" : "")>
     <div class="header">Comments</div>
@@ -214,6 +266,16 @@
         <div class="ui comments" style="max-width: unset;">
             @if (loaded && HarmComments != null)
             {
+                @if (HarmComments.Count == 0)
+                {
+                    <div class="my-container">
+                        <div class="my-sub-container p-2 ">
+                            <div style="text-align: center;">
+                                <h3>Silence. There are no comments yet...</h3>
+                            </div>
+                        </div>
+                    </div>
+                }
                 @foreach (var comment in HarmComments)
                 {
                     @if (comment.ParentCommentId == null)
@@ -446,7 +508,7 @@
     private bool showImagePost = false;
 
     private bool showEditTextPost = false;
-    
+
     private bool showEditImagePost = false;
 
     private PostDTO? postBeingEdited = null;
@@ -458,6 +520,8 @@
     private CommentDTO? commentBeingEdited = null;
 
     private ApplicationUserDTO User { get; set; }
+
+    private ICollection<PostLikeDTO>? postLikes = null;
 
     private ICollection<PostDTO> MyFeed { get; set; }
 
@@ -523,7 +587,7 @@
     private void UpdateShowImagePostValue(bool value) => showImagePost = value;
 
     private void UpdateShowEditTextPostValue(bool value) => showEditTextPost = value;
-    
+
     private void UpdateShowEditImagePostValue(bool value) => showEditImagePost = value;
 
     private void UpdatePostBeingEditedValue(PostDTO value) => postBeingEdited = value;
@@ -774,6 +838,13 @@
                 .InvokeVoidAsync("dropdown", $"#comment-menu-{i}");
     }
 
+    private async void ShowLikesModal(PostDTO post)
+    {
+        postLikes = post.Likes;
+        StateHasChanged();
+        await JsRuntime.InvokeVoidAsync("openLikesModal");
+    }
+
     private async void CloseAddCommentModal()
     {
         HarmComments = Array.Empty<CommentDTO>();
@@ -783,6 +854,12 @@
         await JsRuntime.InvokeVoidAsync("hideCommentDimmer");
         StateHasChanged();
         postBeingCommented = null;
+    }
+
+    private void CloseLikesModal()
+    {
+        postLikes = null;
+        StateHasChanged();
     }
 
     private RenderFragment RenderLikeSection(CommentDTO comment)

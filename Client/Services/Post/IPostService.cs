@@ -12,7 +12,9 @@ public interface IPostService
     
     Task<Guid?> CreateAsync(object body);
 
-    Task<Harmonify.Shared.Models.Post?> UpdateAsync(object body);
+    Task<Harmonify.Shared.Models.Post?> UpdateContentAsync(object body);
+    
+    Task<Harmonify.Shared.Models.Post?> UpdateCommentsCountAsync(object body);
     
     Task<bool> DeleteAsync(Guid postId);
 }

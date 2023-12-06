@@ -178,7 +178,7 @@
                     Content = updatedHarmText,
                     EditedAt = DateTime.Now
                 };
-                var post = await PostService.UpdateAsync(updatedEntity);
+                var post = await PostService.UpdateContentAsync(updatedEntity);
                 if (post == null)
                     await JsRuntime
                         .InvokeVoidAsync("errorToast",

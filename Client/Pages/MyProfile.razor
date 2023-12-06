@@ -474,7 +474,7 @@
                 EditedAt = DateTime.Now
             };
 
-            var entity = await PostService.UpdateAsync(body);
+            var entity = await PostService.UpdateContentAsync(body);
             
             if (entity == null)
                 await JSRuntime.InvokeVoidAsync(

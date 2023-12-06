@@ -3,6 +3,7 @@
 @using Harmonify.Shared.DTO
 @using Harmonify.Shared.Enums
 @using Harmonify.Client.Services.ApplicationUser
+@using Harmonify.Client.Services.Post
 @inject AuthenticationStateProvider AuthenticationStateProvider
 @inject IJSRuntime JsRuntime;
 
@@ -29,6 +30,8 @@
     private ApplicationUserDTO User { get; set; }
     
     private string TextAreaValue { get; set; }
+
+    private int _totalCommentCount;
     
     [Parameter]
     public EventCallback<ICollection<CommentDTO>> OnHarmComments { get; set; }
@@ -44,6 +47,9 @@
     
     [Inject]
     public ICommentService CommentService { get; set; }
+    
+    [Inject]
+    public IPostService PostService { get; set; }
     
     [Inject]
     public IApplicationUserService UserService { get; set; }
@@ -87,11 +93,22 @@
                     "Comment already exists!");
             else
             {
+                _totalCommentCount = 0;
+                var comments = await CommentService
+                    .GetPostCommentsAsync(PostBeingCommented!.Id);
+                
+                foreach (var comment in comments)
+                    CountCommentAndReplies(comment);
+                
+                var postBody = new
+                {
+                    PostId = PostBeingCommented!.Id,
+                    CommentsCount = _totalCommentCount
+                };
+                await PostService.UpdateCommentsCountAsync(postBody);
                 await JsRuntime.InvokeVoidAsync("toggleCommentDimmer");
                 await OnCommentIndex.InvokeAsync(0); // reset counter in order to have small ID's for dropdowns
                 TextAreaValue = "";
-                var comments = await CommentService
-                    .GetPostCommentsAsync(PostBeingCommented.Id);
                 await OnHarmComments.InvokeAsync(comments);
 
                 if (User.Id != PostBeingCommented.Author.Id)
@@ -122,6 +139,17 @@
             await JsRuntime.InvokeVoidAsync(
                 "errorToast",
                 "You can't publish an empty comment!");
+        }
+    }
+    
+    private void CountCommentAndReplies(CommentDTO comment, int depth = 0)
+    {
+        _totalCommentCount++;
+
+        if (comment.Replies != null && comment.Replies.Any())
+        {
+            foreach (var reply in comment.Replies)
+                CountCommentAndReplies(reply, depth + 1);
         }
     }
 }

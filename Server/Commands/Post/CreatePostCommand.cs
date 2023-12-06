@@ -33,7 +33,8 @@ public class CreatePostCommand : IRequest<Shared.Models.Post>
                 Content = request.Content,
                 Type = request.Type,
                 PostedAt = request.PostedAt,
-                AuthorId = request.AuthorId
+                AuthorId = request.AuthorId,
+                CommentsCount = 0
             };
         
             await _repository.AddAsync(entity);

@@ -89,10 +89,25 @@ public class PostService : IPostService
         };
     }
 
-    public async Task<Harmonify.Shared.Models.Post?> UpdateAsync(object body)
+    public async Task<Harmonify.Shared.Models.Post?> UpdateContentAsync(object body)
     {
         using var response = await httpClient.PatchAsJsonAsync(
             "/Post/update", body);
+
+        return response.StatusCode switch
+        {
+            HttpStatusCode.BadRequest => null,
+            HttpStatusCode.OK => JsonSerializer.Deserialize<Harmonify.Shared.Models.Post?>(
+                await response.Content.ReadAsStringAsync(),
+                new JsonSerializerOptions { PropertyNameCaseInsensitive = true }),
+            _ => null
+        };
+    }
+    
+    public async Task<Harmonify.Shared.Models.Post?> UpdateCommentsCountAsync(object body)
+    {
+        using var response = await httpClient.PatchAsJsonAsync(
+            "/Post/update/comments-count", body);
 
         return response.StatusCode switch
         {

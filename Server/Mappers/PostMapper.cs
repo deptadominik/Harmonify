@@ -23,7 +23,9 @@ public class PostMapper : Profile
                 m => m.MapFrom(s => s.EditedAt))
             .ForMember(p => p.Author,
                 m => m.MapFrom(s => s.Author))
-            .ForMember(p => p.Comments,
-                m => m.MapFrom(s => s.Comments));
+            .ForMember(p => p.CommentsCount,
+                m => m.MapFrom(s => s.CommentsCount))
+            .ForMember(p => p.Likes,
+                m => m.MapFrom(s => s.Likes));
     }
 }

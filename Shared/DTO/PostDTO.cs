@@ -17,9 +17,9 @@ public class PostDTO
     
     public DateTime? EditedAt { get; set; }
     
-    public ICollection<PostLike> Likes { get; set; }
+    public ICollection<PostLikeDTO> Likes { get; set; }
     
     public ApplicationUserDTO Author { get; set; }
     
-    public ICollection<Comment> Comments { get; set; }
+    public int CommentsCount { get; set; }
 }

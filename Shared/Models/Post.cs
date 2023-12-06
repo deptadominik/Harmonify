@@ -23,4 +23,6 @@ public class Post
     public ApplicationUser Author { get; set; }
     
     public ICollection<Comment> Comments { get; set; }
+    
+    public int CommentsCount { get; set; }
 }

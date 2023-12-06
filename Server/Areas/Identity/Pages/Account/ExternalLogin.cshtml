@@ -6,7 +6,7 @@
 
 <h1>@ViewData["Title"]</h1>
 <h2 id="external-login-title">Associate your @Model.ProviderDisplayName account.</h2>
-<hr />
+<hr/>
 
 <p id="external-login-description" class="text-info">
     You've successfully authenticated with <strong>@Model.ProviderDisplayName</strong>.
@@ -16,18 +16,88 @@
 
 <div class="row">
     <div class="col-md-4">
-        <form asp-page-handler="Confirmation" asp-route-returnUrl="@Model.ReturnUrl" method="post">
-            <div asp-validation-summary="ModelOnly" class="text-danger" role="alert"></div>
-            <div class="form-floating mb-3">
-                <input asp-for="Input.Email" class="form-control" autocomplete="email" placeholder="Please enter your email."/>
-                <label asp-for="Input.Email" class="form-label"></label>
-                <span asp-validation-for="Input.Email" class="text-danger"></span>
+        <form id="account" asp-page-handler="Confirmation" asp-route-returnUrl="@Model.ReturnUrl" method="post" class="ui large form">
+            <div class="ui stacked segment">
+                <div asp-validation-summary="ModelOnly" class="text-danger" role="alert"></div>
+                <div class="field">
+                    <div class="ui left icon input">
+                        <i class="user icon"></i>
+                        <input asp-for="Input.FirstName" class="form-control" autocomplete="first-name" aria-required="true" placeholder="First name">
+                    </div>
+                    <span asp-validation-for="Input.FirstName" class="text-danger"></span>
+                </div>
+                <div class="field">
+                    <div class="ui left icon input">
+                        <i class="user icon"></i>
+                        <input asp-for="Input.LastName" class="form-control" autocomplete="last-name" aria-required="true" placeholder="Last name">
+                    </div>
+                    <span asp-validation-for="Input.LastName" class="text-danger"></span>
+                </div>
+                <div class="field">
+                    <div class="ui left icon input">
+                        <i class="at icon"></i>
+                        <input asp-for="Input.Email" class="form-control" type="email" autocomplete="email" aria-required="true" placeholder="E-mail address">
+                    </div>
+                    <span asp-validation-for="Input.Email" class="text-danger"></span>
+                </div>
+                <div class="field">
+                    <div class="ui left icon input">
+                        <i class="home icon"></i>
+                        <input asp-for="Input.HouseNumber" class="form-control" autocomplete="house-number" aria-required="true" placeholder="House number">
+                    </div>
+                    <span asp-validation-for="Input.HouseNumber" class="text-danger"></span>
+                </div>
+                <div class="field">
+                    <div class="ui left icon input">
+                        <i class="road icon"></i>
+                        <input asp-for="Input.Street" class="form-control" autocomplete="street" aria-required="true" placeholder="Street">
+                    </div>
+                    <span asp-validation-for="Input.Street" class="text-danger"></span>
+                </div>
+                <div class="field">
+                    <div class="ui left icon input">
+                        <i class="building icon"></i>
+                        <input asp-for="Input.City" class="form-control" autocomplete="city" aria-required="true" placeholder="City">
+                    </div>
+                    <span asp-validation-for="Input.City" class="text-danger"></span>
+                </div>
+                <div class="field">
+                    <div class="ui left icon input">
+                        <i class="mail bulk icon"></i>
+                        <input asp-for="Input.PostalCode" class="form-control" autocomplete="postal-code" aria-required="true" placeholder="Postal code">
+                    </div>
+                    <span asp-validation-for="Input.PostalCode" class="text-danger"></span>
+                </div>
+                <div class="ui calendar field" id="date_calendar">
+                    <div class="ui input left icon">
+                        <i class="calendar icon"></i>
+                        <input type="text" placeholder="Date">
+                        <input id="SelectedDate" value="" type="hidden" asp-for="Input.SelectedDate">
+                    </div>
+                </div>
+                <button id="login-submit" type="submit" class="ui fluid large harmonify-background-color submit button">Register</button>
             </div>
-            <button type="submit" class="w-100 btn btn-lg btn-primary">Register</button>
+            <div class="ui error message"></div>
         </form>
     </div>
 </div>
 
+@* TODO add script for calendar *@
+
 @section Scripts {
-    <partial name="_ValidationScriptsPartial" />
+    <partial name="_ValidationScriptsPartial"/>
+    <script src="~/lib/fomantic/dist/semantic.js"></script>
+    <script>
+        var today = new Date();
+        let selectedDate = ''
+         $('#date_calendar')
+          .calendar({
+            minDate: new Date(today.getFullYear() - 99, today.getMonth(), today.getDate()),
+            maxDate: new Date(today.getFullYear(), today.getMonth(), today.getDate()),
+            type: 'date',
+            onChange: function (date, text) {
+                          document.getElementById("SelectedDate").value = text
+                       }
+          });
+    </script>
 }
