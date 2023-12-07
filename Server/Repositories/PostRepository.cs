@@ -44,6 +44,7 @@ public class PostRepository
     {
         return await ctx.Posts
             .Where(p => p.AuthorId == userId)
+            .Include(p => p.Images)
             .Include(p => p.Author).ThenInclude(a => a.Avatar)
             .Include(p => p.Likes).ThenInclude(pl => pl.User)
             .OrderByDescending(p => p.PostedAt)

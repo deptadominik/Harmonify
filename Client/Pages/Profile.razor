@@ -2,263 +2,619 @@
 @using Harmonify.Shared.Models
 @using Harmonify.Client.Services.ApplicationUser
 @using Harmonify.Client.Services.AvatarImage
+@using Harmonify.Client.Services.CommentLike
+@using Harmonify.Client.Services.CommentService
 @using Harmonify.Client.Services.Friendship
 @using Harmonify.Client.Services.Notification
 @using Harmonify.Client.Services.Post
 @using Harmonify.Client.Services.PostLike
 @using Harmonify.Shared.DTO
 @using Harmonify.Shared.Enums
+@using Harmonify.Client.Components
 @inject AuthenticationStateProvider AuthenticationStateProvider
-@inject IJSRuntime JSRuntime;
+@inject IJSRuntime JsRuntime;
 @inject NavigationManager Navigation
 
 <AuthorizeView Context="Authorize">
-    <Authorized>
-        <div class="ui raised segment">
-            <div class="ui centered card">
-                <div class="image">
-                    <img id="avatar-img-main">
+<Authorized>
+<div class="ui raised segment">
+<div class="ui centered card">
+    <div class="image">
+        <img id="avatar-img-main">
+    </div>
+    @if (Friendship is null)
+    {
+        <div class="ui blue button" @onclick="() => Invite(UserProfile.Id)">
+            <i class="add icon"></i>
+            Invite
+        </div>
+    }
+    else if (Friendship.Status == FriendshipStatus.Declined
+             && Friendship.MainUserId == UserProfile.Id)
+    {
+        <div class="ui red button">
+            You declined @UserProfile.FirstName's invitation.
+        </div>
+        <div class="ui blue button" @onclick="() => InviteAfterDeclined(UserProfile.Id)">
+            <i class="add icon"></i>
+            Invite
+        </div>
+    }
+    else if (Friendship.Status == FriendshipStatus.Declined
+             && Friendship.FriendUserId == UserProfile.Id)
+    {
+        <div class="ui red button">
+            @UserProfile.FirstName declined your invitation.
+        </div>
+        <div class="ui blue button" @onclick="() => InviteAgain(UserProfile.Id)">
+            <i class="add icon"></i>
+            Invite again
+        </div>
+    }
+    else if (Friendship.Status == FriendshipStatus.Accepted)
+    {
+        <div class="ui green button">
+            <i class="check circle outline icon"></i>
+            You are friends
+        </div>
+        <div class="ui red button"
+             @onclick="async () => await DeleteFriend(UserProfile.Id)">
+            <i class="trash alternate outline icon"></i>
+            Remove friend
+        </div>
+    }
+    else if (Friendship.Status == FriendshipStatus.Requested && Friendship.MainUserId == MyUserData.Id)
+    {
+        <div class="ui blue button">
+            <i class="spinner icon"></i>
+            Invitation sent
+        </div>
+    }
+    else if (Friendship.Status == FriendshipStatus.Requested && Friendship.MainUserId == UserProfile.Id)
+    {
+        <div class="ui blue button">
+            @UserProfile.FullName sent you an invitation.
+        </div>
+        <div class="ui buttons">
+            <button class="ui green button"
+                    @onclick="async () => await AcceptFriend(UserProfile.Id)">
+                Accept
+            </button>
+            <div class="or"></div>
+            <button class="ui red button"
+                    @onclick="async () => await DeclineFriend(UserProfile.Id)">
+                Decline
+            </button>
+        </div>
+    }
+    <div class="content">
+        <a class="header">@UserProfile?.FullName</a>
+        <div class="meta">
+            <span class="left floated">Joined in @UserProfile?.JoinedOn</span>
+            <span class="right floated">
+                @if (UserProfile?.Birthday != null)
+                {
+                    <i class="birthday cake icon"></i>
+                    @UserProfile?.Birthday
+                }
+            </span>
+        </div>
+        <div class="description">
+            <i class="building icon"></i>
+            @UserProfile?.City
+        </div>
+    </div>
+    <div class="extra content">
+        <a>
+            <i class="user icon"></i>
+            @Friends.Count friends
+        </a>
+    </div>
+</div>
+<h4 class="ui horizontal divider header">
+    <i class="users icon"></i>
+    Friends
+</h4>
+<div class="ui special three stackable link cards">
+    @foreach (var friend in FriendsWithAmount)
+    {
+        <div class="card">
+            <div class="blurring dimmable image">
+                <div class="ui dimmer">
+                    <div class="content">
+                        <div class="center">
+                            @* TODO: IMPLEMENT IMAGE SLIDE  *@
+                            @* <div @onclick="() => NavigateToFriendProfile(friend.Item1.Id)" class="ui inverted button">View profile</div> *@
+                        </div>
+                    </div>
                 </div>
-                @if (Friendship is null)
-                {
-                    <div class="ui blue button" @onclick="() => Invite(UserProfile.Id)">
-                        <i class="add icon"></i>
-                        Invite
-                    </div>
-                }
-                else if (Friendship.Status == FriendshipStatus.Declined
-                         && Friendship.MainUserId == UserProfile.Id)
-                {
-                    <div class="ui red button">
-                        You declined @UserProfile.FirstName's invitation.
-                    </div>
-                    <div class="ui blue button" @onclick="() => InviteAfterDeclined(UserProfile.Id)">
-                        <i class="add icon"></i>
-                        Invite
-                    </div>
-                }
-                else if (Friendship.Status == FriendshipStatus.Declined
-                         && Friendship.FriendUserId == UserProfile.Id)
-                {
-                    <div class="ui red button">
-                        @UserProfile.FirstName declined your invitation.
-                    </div>
-                    <div class="ui blue button" @onclick="() => InviteAgain(UserProfile.Id)">
-                        <i class="add icon"></i>
-                        Invite again
-                    </div>
-                }
-                else if (Friendship.Status == FriendshipStatus.Accepted)
-                {
-                    <div class="ui green button">
-                        <i class="check circle outline icon"></i>
-                        You are friends
-                    </div>
-                    <div class="ui red button"
-                         @onclick="async () => await DeleteFriend(UserProfile.Id)">
-                        <i class="trash alternate outline icon"></i>
-                        Remove friend
-                    </div>
-                }
-                else if (Friendship.Status == FriendshipStatus.Requested && Friendship.MainUserId == MyUserData.Id)
-                {
-                    <div class="ui blue button">
-                        <i class="spinner icon"></i>
-                        Invitation sent
-                    </div>
-                }
-                else if (Friendship.Status == FriendshipStatus.Requested && Friendship.MainUserId == UserProfile.Id)
-                {
-                    <div class="ui blue button">
-                        @UserProfile.FullName sent you an invitation.
-                    </div>
-                    <div class="ui buttons">
-                        <button class="ui green button"
-                                @onclick="async () => await AcceptFriend(UserProfile.Id)">
-                            Accept
-                        </button>
-                        <div class="or"></div>
-                        <button class="ui red button"
-                                @onclick="async () => await DeclineFriend(UserProfile.Id)">
-                            Decline
-                        </button>
-                    </div>
-                }
-                <div class="content">
-                    <a class="header">@UserProfile?.FullName</a>
-                    <div class="meta">
-                        <span class="left floated">Joined in @UserProfile?.JoinedOn</span>
-                        <span class="right floated">
-                            @if (UserProfile?.Birthday != null)
-                            {
-                                <i class="birthday cake icon"></i>
-                                @UserProfile?.Birthday
-                            }
-                        </span>
-                    </div>
-                    <div class="description">
-                        <i class="building icon"></i>
-                        @UserProfile?.City
-                    </div>
+                <img id="avatar-img-@friendCounter">
+            </div>
+            <div class="content">
+                <div class="header centered">@friend.Item1.FullName</div>
+                <div class="meta">
+                    <span class="left floated">Joined in @friend.Item1.JoinedOn</span>
+                    <span class="right floated">
+                        @if (friend.Item1.Birthday != null)
+                        {
+                            <i class="birthday cake icon"></i>
+                            @friend.Item1.Birthday
+                        }
+                    </span>
                 </div>
-                <div class="extra content">
-                    <a>
-                        <i class="user icon"></i>
-                        @Friends.Count friends
-                    </a>
+                <div class="description">
+                    <i class="building icon"></i>
+                    @friend.Item1.City
                 </div>
             </div>
-            <h4 class="ui horizontal divider header">
-                <i class="users icon"></i>
-                Friends
-            </h4>
-            <div class="ui special three stackable link cards">
-                @foreach (var friend in FriendsWithAmount)
+            <div class="extra content">
+                <div class="left floated ui label blue">
+                    <i class="user icon"></i>
+                    @friend.Item2 @(friend.Item2 == 1 ? "friend" : "friends")
+                </div>
+                <div @onclick="() => NavigateToFriendProfile(friend.Item1.Id)" class="right floated ui label green">View profile</div>
+            </div>
+        </div>
+        @IncrementFriendCounter()
+    }
+</div>
+<h4 class="ui horizontal divider header">
+    <i class="slideshare icon"></i>
+    Harms
+</h4>
+<div class="ui feed">
+    @if (loaded)
+    {
+        @foreach (var post in Harms)
+        {
+            <div class="event ui segment" style=@(post.Images.Count > 0 ? "padding: 2%;" : "padding-left: 2%;padding-right: 2%;")>
+                @if (post.Images.Count == 1)
                 {
-                    <div class="card">
-                        <div class="blurring dimmable image">
-                            <div class="ui dimmer">
-                                <div class="content">
-                                    <div class="center">
-                                        @* TODO: IMPLEMENT IMAGE SLIDE  *@
-                                        @* <div @onclick="() => NavigateToFriendProfile(friend.Item1.Id)" class="ui inverted button">View profile</div> *@
+                    <div class="ui image col-md-6">
+                        <div class="carousel-inner">
+                            <div class="carousel-item active">
+                                <img class="d-block w-100" src="@post.Images.First().Url" alt="slide">
+                            </div>
+                        </div>
+                    </div>
+                }
+                else if (post.Images.Count >= 2)
+                {
+                    <div class="ui image col-md-6">
+                        <div id=@($"carousel-{post.Id}'") class="carousel slide" data-ride="carousel"
+                             style="max-width: 500px;">
+                            <ol class="carousel-indicators">
+                                @for (int i = 0; i < post.Images.Count; i++)
+                                {
+                                    <li data-target="carousel" data-slide-to="@i" class="@(i == 0 ? "active" : "")"></li>
+                                }
+                            </ol>
+                            <div class="carousel-inner">
+                                @for (int i = 0; i < post.Images.Count; i++)
+                                {
+                                    <div class="carousel-item @(i == 0 ? "active" : "")">
+                                        <img class="d-block w-100" src="@post.Images.ElementAt(i).Url" alt="slide">
+                                    </div>
+                                }
+                            </div>
+                            <a href=@($"#carousel-{post.Id}'") class="carousel-control-prev" role="button" data-slide="prev">
+                                <span class="carousel-control-prev-icon" aria-hidden="true"></span>
+                                <span class="sr-only">Previous</span>
+                            </a>
+                            <a href=@($"#carousel-{post.Id}'") class="carousel-control-next" role="button" data-slide="next">
+                                <span class="carousel-control-next-icon" aria-hidden="true"></span>
+                                <span class="sr-only">Next</span>
+                            </a>
+                        </div>
+                    </div>
+                }
+                <div class="label" style="align-self: center;">
+                    <img src="@post.Author.AvatarSource">
+                </div>
+                <div class=@(post.Images.Count > 0 ? "content col-md-6" : "content")
+                     style=@(post.Images.Count > 0 ? "margin: unset;" : "")>
+                    <div class="summary">
+                        <a>@post.Author.FirstName @post.Author.LastName</a> posted a harm
+                        @if (post.Author.Id == MyUserData.Id)
+                        {
+                            <HarmDropdown Id=@($"harm-menu-{index}")
+                                          Type=@(post.Type == PostType.Text ? DropdownType.Post : DropdownType.Image)
+                                          OnMyFeed=@UpdateMyFeedValue
+                                          OnShowTextPost=@UpdateShowTextPostValue
+                                          OnShowImagePost=@UpdateShowImagePostValue
+                                          OnShowEditTextPost=@UpdateShowEditTextPostValue
+                                          OnShowEditImagePost=@UpdateShowEditImagePostValue
+                                          OnPostBeingEdited="@UpdatePostBeingEditedValue"
+                                          PostBeingEdited=@post/>
+                            @Increment()
+                        }
+                        @if (post.EditedAt == null)
+                        {
+                            <div class="date" style="margin-left: 1%;display: inline-flex; float: right;">
+                                @GetDate(post.PostedAt)
+                            </div>
+                        }
+                        else
+                        {
+                            <span class="date" style="margin-left: 1%;display: inline-flex; float: right;">@GetDate(post.EditedAt.Value)</span>
+                            <div class="ui yellow circular tiny label" style="display: inline-flex; float: right;">
+                                Edited
+                            </div>
+                        }
+                    </div>
+                    <div class="extra text">
+                        @post.Content
+                    </div>
+                    <div class="meta" style=@(post.Images.Count > 0 ? "position: absolute; bottom: 0;" : "")>
+                        @if (post.Likes.Count == 0)
+                        {
+                            <a class="like" @onclick="async () => await LikePost(post.Id, post.Author.Id)">
+                                <i class="like icon"></i>
+                                <span>Be the first person to like this post</span>
+                            </a>
+                        }
+                        else
+                        {
+                            @if (post.Likes.Count == 1 && post.Likes.All(x => x.UserId != MyUserData.Id))
+                            {
+                                var userLike = post.Likes.First().User;
+                                <a class="like" @onclick="async () => await LikePost(post.Id, post.Author.Id)">
+                                    <i class="like icon"></i>
+                                </a>
+                                <span style="margin-left: 0;">
+                                    <a @onclick="() => Navigation.NavigateTo(userLike.ProfileUrl, forceLoad: true)">
+                                        <b>@userLike.FullName</b>
+                                    </a> likes it
+                                </span>
+                            }
+                            else if (post.Likes.Count > 1 && post.Likes.All(x => x.UserId != MyUserData.Id))
+                            {
+                                <a class="like" @onclick="async () => await LikePost(post.Id, post.Author.Id)">
+                                    <i class="like icon"></i>
+                                </a>
+                                <span style="margin-left: 0;">
+                                    <a @onclick="() => ShowLikesModal(post)">
+                                        <b>@post.Likes.Count likes</b>
+                                    </a>
+                                </span>
+                            }
+                            else if (post.Likes.Count > 2)
+                            {
+                                var count = post.Likes.Count - 1;
+                                <a class="like" @onclick="async () => await UnlikePost(post.Likes.First(x => x.UserId == MyUserData.Id).Id)">
+                                    <i class="like icon red"></i>
+                                </a>
+                                <span style="margin-left: 0;">
+                                    You and
+                                    <a @onclick="() => ShowLikesModal(post)">
+                                        <b>@count other people</b>
+                                    </a> like it
+                                </span>
+                            }
+                            else if (post.Likes.Count == 2)
+                            {
+                                var userLike = post.Likes.First(x => x.UserId != MyUserData.Id).User;
+                                <a class="like" @onclick="async () => await UnlikePost(post.Likes.First(x => x.UserId == MyUserData.Id).Id)">
+                                    <i class="like icon red"></i>
+                                </a>
+                                <span style="margin-left: 0;">
+                                    You and
+                                    <a @onclick="() => Navigation.NavigateTo(userLike.ProfileUrl, forceLoad: true)">
+                                        <b>@userLike.FullName</b>
+                                    </a> like it
+                                </span>
+                            }
+                            else
+                            {
+                                <a class="like" @onclick="async () => await UnlikePost(post.Likes.First(x => x.UserId == MyUserData.Id).Id)">
+                                    <i class="like icon red"></i>
+                                </a>
+                                <span style="margin-left: 0;">You like it</span>
+                            }
+                        }
+                        <div class="actions" style="display: inline-block;">
+                            <i class="comment icon"></i>
+                            @switch (post.CommentsCount)
+                            {
+                                case 0:
+                                    <a class="reply" @onclick="() => ShowAddCommentModal(post)">Comment</a>
+                                    break;
+                                case 1:
+                                    <a class="reply" @onclick="() => ShowAddCommentModal(post)"> 1 comment</a>
+                                    break;
+                                default:
+                                    <a class="reply" @onclick="() => ShowAddCommentModal(post)">@post.CommentsCount comments</a>
+                                    break;
+                            }
+                        </div>
+                    </div>
+                </div>
+            </div>
+            @if (showEditTextPost && postBeingEdited.Id == post.Id)
+            {
+                <EditTextHarmInput OnShowEditTextPost=@UpdateShowEditTextPostValue
+                                   OnMyFeed=@UpdateMyFeedValue
+                                   PostBeingEdited=@postBeingEdited/>
+            }
+            @if (showEditImagePost && postBeingEdited.Id == post.Id)
+            {
+                <EditImageHarmInput OnShowEditImagePost=@UpdateShowEditImagePostValue
+                                    OnMyFeed=@UpdateMyFeedValue
+                                    User=@MyUserData
+                                    PostBeingEdited=@postBeingEdited/>
+            }
+        }
+    }
+    else
+    {
+        <div class="ui active dimmer">
+            <div class="ui text large loader">Loading</div>
+        </div>
+    }
+</div>
+</div>
+<div class="ui modal" id="likes-modal"
+     style=@(postLikes != null ? "top: unset;left: unset;right: unset;bottom: unset;height: unset;display: block !important;align-self: center;width: unset;" : "")>
+    <div class="header">Likes</div>
+    <div class="scrolling content">
+        <div class="ui items" style="max-width: unset;">
+            @if (postLikes != null)
+            {
+                @foreach (var like in postLikes)
+                {
+                    <div class="item">
+                        <a class="ui tiny circular image" @onclick="() => Navigation.NavigateTo(like.User.ProfileUrl, forceLoad: true)">
+                            <img src="@like.User.AvatarSource">
+                        </a>
+                        <div class="middle aligned content">
+                            <div class="header">
+                                <a @onclick="() => Navigation.NavigateTo(like.User.ProfileUrl, forceLoad: true)">@like.User.FullName</a>
+                            </div>
+                        </div>
+                    </div>
+                }
+            }
+        </div>
+    </div>
+    <div class="actions">
+        <div class="ui red cancel button" @onclick="CloseLikesModal">Close</div>
+    </div>
+</div>
+<div class="ui modal" id="comments-modal"
+     style=@(postBeingCommented != null ? "top: unset;left: unset;right: unset;bottom: unset;height: unset;display: block !important;align-self: center;" : "")>
+    <div class="header">Comments</div>
+    <div class="scrolling content">
+        <div class="ui comments" style="max-width: unset;">
+            @if (loaded && HarmComments != null)
+            {
+                @if (HarmComments.Count == 0)
+                {
+                    <div class="my-container">
+                        <div class="my-sub-container p-2 ">
+                            <div style="text-align: center;">
+                                <h3>Silence. There are no comments yet...</h3>
+                            </div>
+                        </div>
+                    </div>
+                }
+                @foreach (var comment in HarmComments)
+                {
+                    @if (comment.ParentCommentId == null)
+                    {
+                        <div class="comment ui raised segment"
+                             style="padding: 2%;">
+                            <a class="avatar">
+                                <img src="@comment.Author.AvatarSource">
+                            </a>
+                            <div class="content" style="padding-top: 0;">
+                                <a class="author"
+                                   @onclick="() => Navigation.NavigateTo(comment.Author.ProfileUrl, forceLoad: true)">
+                                    @comment.Author.FullName
+                                </a>
+                                <div class="metadata" style="display: inline;margin-left: 2%;">
+                                    @if (comment.Author.Id == MyUserData.Id)
+                                    {
+                                        <HarmDropdown Id=@($"comment-menu-{commentIndex}")
+                                                      Type=DropdownType.Comment
+                                                      OnHarmComments=@UpdateHarmCommentsValue
+                                                      OnCommentBeingEdited=@UpdateCommentBeingEditedValue
+                                                      Comment=@comment
+                                                      PostBeingCommented=@postBeingCommented/>
+                                        @IncrementComment()
+                                    }
+                                    @if (comment.EditedAt == null)
+                                    {
+                                        <span class="date" style="display: inline-flex; float: right;margin-top: 0.2em;">@GetDate(comment.PostedAt)</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="date" style="display: inline-flex; float: right;margin-top: 0.2em;">@GetDate(comment.EditedAt.Value)</span>
+                                        <div class="ui yellow circular tiny label" style="margin-right: 2%; display: inline-flex; float: right;">
+                                            Edited
+                                        </div>
+                                    }
+                                </div>
+                                <div class="text">
+                                    @comment.Content
+                                </div>
+                                <div class="actions">
+                                    <div class="reply">
+                                        @RenderLikeSection(comment)
+                                        <a class="reply" @onclick="() => OpenAddReplySection(comment)">
+                                            <i class="reply icon"></i>Reply
+                                        </a>
                                     </div>
                                 </div>
                             </div>
-                            <img id="avatar-img-@friendCounter">
-                        </div>
-                        <div class="content">
-                            <div class="header centered">@friend.Item1.FullName</div>
-                            <div class="meta">
-                                <span class="left floated">Joined in @friend.Item1.JoinedOn</span>
-                                <span class="right floated">
-                                    @if (friend.Item1.Birthday != null)
+                            @if (comment.Replies.Count > 0)
+                            {
+                                <div class="comments ui segment"
+                                     style="padding: 2%;margin-top: 2%;">
+                                    @foreach (var reply in comment.Replies.OrderBy(c => c.PostedAt))
                                     {
-                                        <i class="birthday cake icon"></i>
-                                        @friend.Item1.Birthday
-                                    }
-                                </span>
-                            </div>
-                            <div class="description">
-                                <i class="building icon"></i>
-                                @friend.Item1.City
-                            </div>
-                        </div>
-                        <div class="extra content">
-                            <div class="left floated ui label blue">
-                                <i class="user icon"></i>
-                                @friend.Item2 @(friend.Item2 == 1 ? "friend" : "friends")
-                            </div>
-                            <div @onclick="() => NavigateToFriendProfile(friend.Item1.Id)" class="right floated ui label green">View profile</div>
-                        </div>
-                    </div>
-                    @Increment()
-                }
-            </div>
-            <h4 class="ui horizontal divider header">
-                <i class="slideshare icon"></i>
-                Harms
-            </h4>
-            <div class="ui feed">
-                @if (loaded)
-                {
-                    @foreach (var post in Harms)
-                    {
-                        <div class="event">
-                            <div class="label" style="align-self: center;">
-                                <img src="@post.Author.AvatarSource">
-                            </div>
-                            <div class="content">
-                                <div class="summary">
-                                    <a>@post.Author.FirstName @post.Author.LastName</a> posted a harm
-                                    @if (post.EditedAt == null)
-                                    {
-                                        <div class="date">
-                                            On @post.PostedAt
+                                        <div class="comment">
+                                            <a class="avatar">
+                                                <img src="@reply.Author.AvatarSource">
+                                            </a>
+                                            <div class="content" style="padding-top: 0;">
+                                                <a class="author"
+                                                   @onclick="() => Navigation.NavigateTo(reply.Author.ProfileUrl, forceLoad: true)">
+                                                    @reply.Author.FullName
+                                                </a>
+                                                <div class="metadata" style="display: inline;margin-left: 2%;">
+                                                    @if (reply.Author.Id == MyUserData.Id)
+                                                    {
+                                                        <HarmDropdown Id=@($"comment-menu-{commentIndex}")
+                                                                      Type=DropdownType.Reply
+                                                                      OnHarmComments=@UpdateHarmCommentsValue
+                                                                      OnReplyBeingEdited=@UpdateReplyBeingEditedValue
+                                                                      Comment=@reply
+                                                                      PostBeingCommented=@postBeingCommented/>
+                                                        @IncrementComment()
+                                                    }
+                                                    @if (reply.EditedAt == null)
+                                                    {
+                                                        <span class="date" style="display: inline-flex; float: right;margin-top: 0.2em;">@GetDate(reply.PostedAt)</span>
+                                                    }
+                                                    else
+                                                    {
+                                                        <span class="date" style="display: inline-flex; float: right;margin-top: 0.2em;">@GetDate(reply.EditedAt.Value)</span>
+                                                        <div class="ui yellow circular tiny label" style="margin-right: 2%; display: inline-flex; float: right;">
+                                                            Edited
+                                                        </div>
+                                                    }
+                                                </div>
+                                                <div class="text">
+                                                    @reply.Content
+                                                </div>
+                                                <div class="actions">
+                                                    <div class="reply">
+                                                        @RenderLikeSection(reply)
+                                                        <a class="reply" @onclick="() => OpenAddReplyToReplySection(reply)">
+                                                            <i class="reply icon"></i>Reply
+                                                        </a>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            @if (reply.Replies.Count > 0)
+                                            {
+                                                <div class="comments">
+                                                    @foreach (var repliedReply in reply.Replies.OrderBy(c => c.PostedAt))
+                                                    {
+                                                        <div class="comment ui segment"
+                                                             style="padding: 2%;margin-top: 2%;">
+                                                            <a class="avatar">
+                                                                <img src="@repliedReply.Author.AvatarSource">
+                                                            </a>
+                                                            <div class="content" style="padding-top: 0;">
+                                                                <a class="author"
+                                                                   @onclick="() => Navigation.NavigateTo(repliedReply.Author.ProfileUrl, forceLoad: true)">
+                                                                    @repliedReply.Author.FullName
+                                                                </a>
+                                                                <div class="metadata" style="display: inline;margin-left: 2%;">
+                                                                    @if (repliedReply.Author.Id == MyUserData.Id)
+                                                                    {
+                                                                        <HarmDropdown Id=@($"comment-menu-{commentIndex}")
+                                                                                      Type=DropdownType.ReplyToReply
+                                                                                      OnHarmComments=@UpdateHarmCommentsValue
+                                                                                      OnReplyToReplyBeingEdited=@UpdateReplyToReplyBeingEditedValue
+                                                                                      Comment=@repliedReply
+                                                                                      PostBeingCommented=@postBeingCommented/>
+                                                                        @IncrementComment()
+                                                                    }
+                                                                    @if (repliedReply.EditedAt == null)
+                                                                    {
+                                                                        <span class="date" style="display: inline-flex; float: right;margin-top: 0.2em;">@GetDate(repliedReply.PostedAt)</span>
+                                                                    }
+                                                                    else
+                                                                    {
+                                                                        <span class="date" style="display: inline-flex; float: right;margin-top: 0.2em;">@GetDate(repliedReply.EditedAt.Value)</span>
+                                                                        <div class="ui yellow circular tiny label" style="margin-right: 2%; display: inline-flex; float: right;">
+                                                                            Edited
+                                                                        </div>
+                                                                    }
+                                                                </div>
+                                                                <div class="text">
+                                                                    @repliedReply.Content
+                                                                </div>
+                                                                <div class="actions">
+                                                                    <div class="reply">
+                                                                        @RenderLikeSection(repliedReply)
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                        @if (repliedReply.IsEditReplyToReplySectionEnabled)
+                                                        {
+                                                            <EditCommentInput PostBeingCommented=@postBeingCommented
+                                                                              CommentBeingEdited=@repliedReply
+                                                                              OnHarmComments=@UpdateHarmCommentsValue
+                                                                              OnCommentIndex=@UpdateCommentIndexValue
+                                                                              OnGetDropdownIndexes=@UpdateGetDropdown/>
+                                                        }
+                                                    }
+                                                </div>
+                                            }
+                                            @if (reply.IsReplyToReplySectionEnabled)
+                                            {
+                                                <ReplyInput PostBeingCommented=@postBeingCommented
+                                                            ParentComment=@reply
+                                                            OnHarmComments=@UpdateHarmCommentsValue
+                                                            OnCommentIndex=@UpdateCommentIndexValue
+                                                            OnGetDropdownIndexes=@UpdateGetDropdown/>
+                                            }
+                                            @if (reply.IsEditReplySectionEnabled)
+                                            {
+                                                <EditCommentInput PostBeingCommented=@postBeingCommented
+                                                                  CommentBeingEdited=@reply
+                                                                  OnHarmComments=@UpdateHarmCommentsValue
+                                                                  OnCommentIndex=@UpdateCommentIndexValue
+                                                                  OnGetDropdownIndexes=@UpdateGetDropdown/>
+                                            }
                                         </div>
                                     }
-                                    else
-                                    {
-                                        <div class="date">
-                                            Edited at @post.EditedAt
-                                        </div>
-                                    }
                                 </div>
-                                <div class="extra text">
-                                    @post.Content
-                                </div>
-                                <div class="meta">
-                                    @if (post.Likes.Count == 0)
-                                    {
-                                        <a class="like" @onclick="async () => await LikePost(post.Id, post.Author.Id)">
-                                            <i class="like icon"></i>
-                                            <span>Be the first person to like this post</span>
-                                        </a>
-                                    }
-                                    else
-                                    {
-                                        @if (post.Likes.Count == 1 && post.Likes.All(x => x.UserId != MyUserData.Id))
-                                        {
-                                            var userLike = post.Likes.First().User;
-                                            <a class="like" @onclick="async () => await LikePost(post.Id, post.Author.Id)">
-                                                <i class="like icon"></i>
-                                                <span>@userLike.FirstName @userLike.LastName likes it</span>
-                                            </a>
-                                        }
-                                        else if (post.Likes.Count > 1 && post.Likes.All(x => x.UserId != MyUserData.Id))
-                                        {
-                                            <a class="like" @onclick="async () => await LikePost(post.Id, post.Author.Id)">
-                                                <i class="like icon"></i>
-                                                <span>@post.Likes.Count likes</span>
-                                            </a>
-                                        }
-                                        else if (post.Likes.Count > 2)
-                                        {
-                                            var count = post.Likes.Count - 1;
-                                            <a class="like" @onclick="async () => await UnlikePost(post.Likes.First(x => x.UserId == MyUserData.Id).Id)">
-                                                <i class="like icon"></i>
-                                                <span>You and @count other people like it</span>
-                                            </a>
-                                        }
-                                        else if (post.Likes.Count == 2)
-                                        {
-                                            var userLike = post.Likes.First(x => x.UserId != MyUserData.Id).User;
-                                            <a class="like" @onclick="async () => await UnlikePost(post.Likes.First(x => x.UserId == MyUserData.Id).Id)">
-                                                <i class="like icon"></i>
-                                                <span>You and @userLike.FirstName @userLike.LastName like it</span>
-                                            </a>
-                                        }
-                                        else
-                                        {
-                                            <a class="like" @onclick="async () => await UnlikePost(post.Likes.First(x => x.UserId == MyUserData.Id).Id)">
-                                                <i class="like icon"></i>
-                                                <span>You like it</span>
-                                            </a>
-                                        }
-                                    }
-                                </div>
-                            </div>
+                            }
+                            @if (comment.IsReplySectionEnabled)
+                            {
+                                <ReplyInput PostBeingCommented=@postBeingCommented
+                                            ParentComment=@comment
+                                            OnHarmComments=@UpdateHarmCommentsValue
+                                            OnCommentIndex=@UpdateCommentIndexValue
+                                            OnGetDropdownIndexes=@UpdateGetDropdown/>
+                            }
+                            @if (comment.IsEditCommentSectionEnabled)
+                            {
+                                <EditCommentInput PostBeingCommented=@postBeingCommented
+                                                  CommentBeingEdited=@comment
+                                                  OnHarmComments=@UpdateHarmCommentsValue
+                                                  OnCommentIndex=@UpdateCommentIndexValue
+                                                  OnGetDropdownIndexes=@UpdateGetDropdown/>
+                            }
                         </div>
                     }
                 }
-                else
-                {
-                    <div class="ui active dimmer">
-                        <div class="ui text large loader">Loading</div>
-                    </div>
-                }
+            }
+            <CommentInput PostBeingCommented=@postBeingCommented
+                          OnHarmComments=@UpdateHarmCommentsValue
+                          OnCommentIndex=@UpdateCommentIndexValue
+                          OnGetDropdownIndexes=@UpdateGetDropdown/>
+        </div>
+    </div>
+    <div class="actions">
+        <div class="ui red cancel button" @onclick="CloseAddCommentModal">Close</div>
+    </div>
+</div>
+</Authorized>
+<NotAuthorized>
+    <div class="my-container">
+        <div class="my-sub-container p-2 ">
+            <div style="text-align: center;">
+                <h3>Log in, to view your profile.</h3>
             </div>
         </div>
-    </Authorized>
-    <NotAuthorized>
-        <div class="my-container">
-            <div class="my-sub-container p-2 ">
-                <div style="text-align: center;">
-                    <h3>Log in, to view your profile.</h3>
-                </div>
-            </div>
-        </div>
-    </NotAuthorized>
+    </div>
+</NotAuthorized>
 </AuthorizeView>
 
 @code {
@@ -266,8 +622,33 @@
     [Parameter]
     public string? Id { get; set; }
 
-    private bool loaded;
+    private bool loaded = false;
+    
     private int friendCounter = 0;
+
+    private int index = 0;
+
+    private bool showEditTextPost = false;
+
+    private PostDTO? postBeingEdited = null;
+
+    private int commentIndex = 0;
+
+    private bool showTextPost = false;
+
+    private bool showImagePost = false;
+
+    private bool showEditImagePost = false;
+
+    private PostDTO? postBeingCommented = null;
+
+    private CommentDTO? commentBeingAdded = null;
+
+    private CommentDTO? commentBeingEdited = null;
+
+    private ICollection<PostLikeDTO>? postLikes = null;
+
+    private ICollection<CommentDTO>? HarmComments { get; set; }
 
     private List<ApplicationUserDTO> Friends { get; set; } = new();
 
@@ -282,6 +663,21 @@
     private AvatarImage? Avatar { get; set; }
 
     private Friendship? Friendship { get; set; }
+
+    private string TextAddReplyAreaValue { get; set; }
+
+    private string TextAddCommentAreaValue { get; set; }
+
+    private string TextEditCommentAreaValue { get; set; }
+
+    [CascadingParameter]
+    private Task<AuthenticationState> AuthenticationStateTask { get; set; }
+
+    [Inject]
+    public ICommentService CommentService { get; set; }
+
+    [Inject]
+    public ICommentLikeService CommentLikeService { get; set; }
 
     [Inject]
     public IApplicationUserService UserService { get; set; }
@@ -333,17 +729,17 @@
             Avatar = await AvatarService.GetAvatarAsync(UserProfile.Id);
 
             if (Avatar is not null)
-                await JSRuntime
+                await JsRuntime
                     .SetImageAsync(Avatar.Content, "avatar-img-main", "image/jpeg");
             else
-                await JSRuntime
+                await JsRuntime
                     .InvokeVoidAsync("changeSrcUnknown");
 
             await RenderFriendsImages();
 
             Harms = await PostService.GetUserPostsAsync(UserProfile.Id);
 
-            await JSRuntime
+            await JsRuntime
                 .InvokeVoidAsync("deleteUser");
         }
 
@@ -367,12 +763,12 @@
         {
             if (friend.AvatarContent != null && friend.AvatarContent.Length != 0)
             {
-                await JSRuntime
+                await JsRuntime
                     .SetImageAsync(friend.AvatarContent, $"avatar-img-{index}", "image/jpeg");
             }
             else
             {
-                await JSRuntime.InvokeVoidAsync("changeSrcFriendUnknown", index);
+                await JsRuntime.InvokeVoidAsync("changeSrcFriendUnknown", index);
             }
 
             index++;
@@ -384,12 +780,12 @@
         var isRemoved = await FriendshipService.DeleteFriendshipAsync(MyUserData!.Id, friendId);
 
         if (isRemoved == false)
-            await JSRuntime
+            await JsRuntime
                 .InvokeVoidAsync("errorToast",
                     "Something went wrong, user has not been removed from your friends.");
         else
         {
-            await JSRuntime
+            await JsRuntime
                 .InvokeVoidAsync("successToast",
                     "The user was removed from your friendship.");
             await Task.Delay(2500);
@@ -401,7 +797,7 @@
     {
         if (MyUserData.Id == friendUserId)
         {
-            await JSRuntime.InvokeVoidAsync(
+            await JsRuntime.InvokeVoidAsync(
                 "errorToast",
                 "You cannot invite yourself.");
 
@@ -419,7 +815,7 @@
 
         if (mainUserId == null)
         {
-            await JSRuntime.InvokeVoidAsync(
+            await JsRuntime.InvokeVoidAsync(
                 "errorToast",
                 "This user is already your friend.");
         }
@@ -437,7 +833,7 @@
 
             await NotificationService.CreateAsync(notificationBody);
 
-            await JSRuntime.InvokeVoidAsync(
+            await JsRuntime.InvokeVoidAsync(
                 "successToast",
                 "Request sent successfully!");
             await Task.Delay(2500);
@@ -451,7 +847,7 @@
     {
         if (MyUserData.Id == friendUserId)
         {
-            await JSRuntime.InvokeVoidAsync(
+            await JsRuntime.InvokeVoidAsync(
                 "errorToast",
                 "You cannot invite yourself.");
 
@@ -464,7 +860,7 @@
 
         if (wasRemoved == false)
         {
-            await JSRuntime.InvokeVoidAsync(
+            await JsRuntime.InvokeVoidAsync(
                 "errorToast",
                 "Something went wrong with sending this invitation.");
 
@@ -480,7 +876,7 @@
     {
         if (MyUserData.Id == friendUserId)
         {
-            await JSRuntime.InvokeVoidAsync(
+            await JsRuntime.InvokeVoidAsync(
                 "errorToast",
                 "You cannot invite yourself.");
 
@@ -499,7 +895,7 @@
 
         if (friendship == null)
         {
-            await JSRuntime.InvokeVoidAsync(
+            await JsRuntime.InvokeVoidAsync(
                 "errorToast",
                 "Something went wrong with sending this invitation.");
         }
@@ -517,7 +913,7 @@
 
             await NotificationService.CreateAsync(notificationBody);
 
-            await JSRuntime.InvokeVoidAsync(
+            await JsRuntime.InvokeVoidAsync(
                 "successToast",
                 "Request sent successfully!");
             await Task.Delay(2500);
@@ -539,7 +935,7 @@
 
         if (friendship == null)
         {
-            await JSRuntime.InvokeVoidAsync(
+            await JsRuntime.InvokeVoidAsync(
                 "errorToast",
                 "Something went wrong, we couldn't accept this invitation.");
         }
@@ -557,7 +953,7 @@
 
             await NotificationService.CreateAsync(notificationBody);
 
-            await JSRuntime.InvokeVoidAsync(
+            await JsRuntime.InvokeVoidAsync(
                 "successToast",
                 "Invitation was accepted successfully.");
             await Task.Delay(2500);
@@ -579,7 +975,7 @@
 
         if (friendship == null)
         {
-            await JSRuntime.InvokeVoidAsync(
+            await JsRuntime.InvokeVoidAsync(
                 "errorToast",
                 "Something went wrong, we couldn't decline this invitation.");
         }
@@ -597,7 +993,7 @@
 
             await NotificationService.CreateAsync(notificationBody);
 
-            await JSRuntime.InvokeVoidAsync(
+            await JsRuntime.InvokeVoidAsync(
                 "successToast",
                 "Invitation was declined successfully.");
             await Task.Delay(2500);
@@ -610,13 +1006,158 @@
         Navigation.NavigateTo($"/Profile/{id}", forceLoad: true);
     }
 
-    private object? Increment()
+    private object? IncrementFriendCounter()
     {
         friendCounter++;
         return null;
     }
 
-    //TODO move methods below to shared file
+    private void UpdateShowTextPostValue(bool value) => showTextPost = value;
+
+    private void UpdateShowImagePostValue(bool value) => showImagePost = value;
+
+    private void UpdateShowEditTextPostValue(bool value) => showEditTextPost = value;
+
+    private void UpdateShowEditImagePostValue(bool value) => showEditImagePost = value;
+
+    private void UpdatePostBeingEditedValue(PostDTO value) => postBeingEdited = value;
+
+    private void UpdateCommentBeingEditedValue(CommentDTO value)
+    {
+        if (commentBeingEdited != null)
+        {
+            commentBeingEdited.IsEditCommentSectionEnabled = false;
+            commentBeingEdited.IsEditReplySectionEnabled = false;
+            commentBeingEdited.IsEditReplyToReplySectionEnabled = false;
+        }
+
+        commentBeingEdited = HarmComments!.First(x => x.Id == value.Id);
+        commentBeingEdited.IsEditCommentSectionEnabled = true;
+        TextEditCommentAreaValue = commentBeingEdited.Content;
+
+        StateHasChanged();
+    }
+
+    private void UpdateReplyBeingEditedValue(CommentDTO value)
+    {
+        if (commentBeingEdited != null)
+        {
+            commentBeingEdited.IsEditCommentSectionEnabled = false;
+            commentBeingEdited.IsEditReplySectionEnabled = false;
+            commentBeingEdited.IsEditReplyToReplySectionEnabled = false;
+        }
+
+        commentBeingEdited = HarmComments!
+            .First(x => x.Replies.Contains(value))
+            .Replies
+            .First(x => x.Id == value.Id);
+
+        commentBeingEdited.IsEditReplySectionEnabled = true;
+        TextEditCommentAreaValue = commentBeingEdited.Content;
+
+        StateHasChanged();
+    }
+
+    private void UpdateReplyToReplyBeingEditedValue(CommentDTO value)
+    {
+        if (commentBeingEdited != null)
+        {
+            commentBeingEdited.IsEditCommentSectionEnabled = false;
+            commentBeingEdited.IsEditReplySectionEnabled = false;
+            commentBeingEdited.IsEditReplyToReplySectionEnabled = false;
+        }
+
+        commentBeingEdited = HarmComments!
+            .First(x => x.Replies
+                .Any(y => y.Replies.Contains(value)))
+            .Replies
+            .First(y => y.Replies.Contains(value))
+            .Replies
+            .First(x => x.Id == value.Id);
+
+        commentBeingEdited.IsEditReplyToReplySectionEnabled = true;
+        TextEditCommentAreaValue = commentBeingEdited.Content;
+
+        StateHasChanged();
+    }
+
+    private async void UpdateMyFeedValue(ICollection<PostDTO> value)
+    {
+        // We can't use the provided parameter, as it refers to MyFeed, not Harms
+        Harms = await PostService.GetUserPostsAsync(MyUserData.Id);
+        StateHasChanged();
+    }
+
+    private void UpdateHarmCommentsValue(ICollection<CommentDTO> value)
+    {
+        HarmComments = value;
+        StateHasChanged();
+    }
+
+    private async void UpdateGetDropdown(bool value)
+    {
+        if (value)
+        {
+    // Make sure that every dropdownId will be updated on DOM
+            await Task.Delay(500);
+
+            var indexes = await JsRuntime
+                .InvokeAsync<int[]>("getDropdownIndexes");
+
+            foreach (var i in indexes)
+                await JsRuntime
+                    .InvokeVoidAsync("dropdown", $"#comment-menu-{i}");
+        }
+    }
+
+    private void UpdateCommentIndexValue(int value) => commentIndex = value;
+
+    private async void OpenAddReplySection(CommentDTO comment)
+    {
+        if (commentBeingAdded != null)
+        {
+            commentBeingAdded.IsReplyToReplySectionEnabled = false;
+            commentBeingAdded.IsReplySectionEnabled = false;
+            await JsRuntime.InvokeVoidAsync("hideCommentDimmer");
+        }
+
+        commentBeingAdded = HarmComments.First(x => x.Id == comment.Id);
+        commentBeingAdded.IsReplySectionEnabled = true;
+
+        StateHasChanged();
+    }
+
+    private async void OpenAddReplyToReplySection(CommentDTO reply)
+    {
+        if (commentBeingAdded != null)
+        {
+            commentBeingAdded.IsReplyToReplySectionEnabled = false;
+            commentBeingAdded.IsReplySectionEnabled = false;
+            await JsRuntime.InvokeVoidAsync("hideCommentDimmer");
+        }
+
+        commentBeingAdded = HarmComments
+            .First(x => x.Replies.Contains(reply))
+            .Replies
+            .First(x => x.Id == reply.Id);
+        commentBeingAdded.IsReplyToReplySectionEnabled = true;
+
+        StateHasChanged();
+    }
+
+    private object? Increment()
+    {
+        index++;
+        return null;
+    }
+
+    private object? IncrementComment()
+    {
+        commentIndex++;
+        return null;
+    }
+
+    //TODO move to shared file
     private async Task LikePost(Guid postId, string postOwnerId)
     {
         var body = new
@@ -626,10 +1167,10 @@
             UserId = MyUserData.Id
         };
 
-        var entity = await PostLikeService.CreateAsync(body);
+        var entity = PostLikeService.CreateAsync(body);
 
         if (entity == null)
-            await JSRuntime.InvokeVoidAsync(
+            await JsRuntime.InvokeVoidAsync(
                 "errorToast",
                 "Something went wrong, we couldn't like this post.");
         else
@@ -642,6 +1183,7 @@
                     Description = $"{MyUserData.FullName} liked your post.",
                     MarkedAsSeen = false,
                     ReceivedAt = DateTime.Now,
+                    // TODO - IMPLEMENT POST PAGE!!!
                     ReferenceUrl = $"/Post/{postId}",
                     UserId = postOwnerId
                 };
@@ -649,7 +1191,7 @@
                 await NotificationService.CreateAsync(notificationBody);
             }
 
-            Navigation.NavigateTo($"/Profile/{Id}", forceLoad: true);
+            Navigation.NavigateTo($"/Profile/{UserProfile.Id}", forceLoad: true);
         }
     }
 
@@ -658,13 +1200,173 @@
         var wasRemoved = await PostLikeService.DeletePostLikeAsync(postLikeId);
 
         if (!wasRemoved)
-            await JSRuntime.InvokeVoidAsync(
+            await JsRuntime.InvokeVoidAsync(
                 "errorToast",
                 "Something went wrong, we couldn't unlike this post.");
         else
         {
-            Navigation.NavigateTo($"/Profile/{Id}", forceLoad: true);
+            Navigation.NavigateTo($"/Profile/{UserProfile.Id}", forceLoad: true);
         }
     }
 
+    private async Task LikeComment(CommentDTO comment, string commentOwnerId)
+    {
+        var body = new
+        {
+            Id = Guid.NewGuid(),
+            CommentId = comment.Id,
+            UserId = MyUserData.Id
+        };
+
+        var entity = await CommentLikeService.CreateAsync(body);
+
+        if (entity == null)
+            await JsRuntime.InvokeVoidAsync(
+                "errorToast",
+                "Something went wrong, we couldn't like this comment.");
+        else
+        {
+            if (commentOwnerId != MyUserData.Id)
+            {
+                var notificationBody = new
+                {
+                    Type = NotificationType.CommentLike,
+                    Description = $"{MyUserData.FullName} liked your comment.",
+                    MarkedAsSeen = false,
+                    ReceivedAt = DateTime.Now,
+                    ReferenceUrl = $"/Post/{postBeingCommented!.Id}",
+                    UserId = postBeingCommented!.Author.Id
+                };
+
+                await NotificationService.CreateAsync(notificationBody);
+            }
+
+            Navigation.NavigateTo($"/Profile/{UserProfile.Id}", forceLoad: true);
+        }
+    }
+
+    private async Task UnlikeComment(Guid commentLikeId)
+    {
+        var wasRemoved = await CommentLikeService.DeleteAsync(commentLikeId);
+
+        if (!wasRemoved)
+            await JsRuntime.InvokeVoidAsync(
+                "errorToast",
+                "Something went wrong, we couldn't unlike this comment.");
+        else
+        {
+            Navigation.NavigateTo($"/Profile/{UserProfile.Id}", forceLoad: true);
+        }
+    }
+
+    private async void ShowAddCommentModal(PostDTO post)
+    {
+        HarmComments = await CommentService.GetPostCommentsAsync(post.Id);
+        postBeingCommented = post;
+        StateHasChanged();
+        await JsRuntime.InvokeVoidAsync("openCommentsModal");
+        for (int i = 0; i < commentIndex; i++)
+            await JsRuntime
+                .InvokeVoidAsync("dropdown", $"#comment-menu-{i}");
+    }
+
+    private async void ShowLikesModal(PostDTO post)
+    {
+        postLikes = post.Likes;
+        StateHasChanged();
+        await JsRuntime.InvokeVoidAsync("openLikesModal");
+    }
+
+    private async void CloseAddCommentModal()
+    {
+        HarmComments = Array.Empty<CommentDTO>();
+        TextAddCommentAreaValue = "";
+        TextAddReplyAreaValue = "";
+        commentIndex = 0;
+        await JsRuntime.InvokeVoidAsync("hideCommentDimmer");
+        StateHasChanged();
+        postBeingCommented = null;
+    }
+
+    private void CloseLikesModal()
+    {
+        postLikes = null;
+        StateHasChanged();
+    }
+
+    private RenderFragment RenderLikeSection(CommentDTO comment)
+    {
+        @if (comment.Likes.Count == 0)
+        {
+            return @<a class="like" @onclick="async () => await LikeComment(comment, comment.Author.Id)">
+                       <i class="like icon"></i>Be the first person to like this comment
+                   </a>;
+        }
+        if (comment.Likes.Count == 1 && comment.Likes.All(x => x.UserId != MyUserData.Id))
+        {
+            var userLike = comment.Likes.First().User;
+            return @<a class="like" @onclick="async () => await LikeComment(comment, comment.Author.Id)">
+                       <i class="like icon"></i>@userLike.FirstName @userLike.LastName likes it
+                   </a>;
+        }
+        if (comment.Likes.Count > 1 && comment.Likes.All(x => x.UserId != MyUserData.Id))
+        {
+            return @<a class="like" @onclick="async () => await LikeComment(comment, comment.Author.Id)">
+                       <i class="like icon"></i>@comment.Likes.Count likes
+                   </a>;
+        }
+        if (comment.Likes.Count > 2)
+        {
+            var count = comment.Likes.Count - 1;
+            return @<a class="like" @onclick="async () => await UnlikeComment(comment.Likes.First(x => x.UserId == MyUserData.Id).Id)">
+                       <i class="like icon"></i>You and @count other people like it
+                   </a>;
+        }
+        if (comment.Likes.Count == 2)
+        {
+            var userLike = comment.Likes.First(x => x.UserId != MyUserData.Id).User;
+            return @<a class="like" @onclick="async () => await UnlikeComment(comment.Likes.First(x => x.UserId == MyUserData.Id).Id)">
+                       <i class="like icon"></i>You and @userLike.FirstName @userLike.LastName like it
+                   </a>;
+        }
+        return @<a class="like" @onclick="async () => await UnlikeComment(comment.Likes.First(x => x.UserId == MyUserData.Id).Id)">
+                   <i class="like icon"></i>You like it
+               </a>;
+    }
+
+    public static string GetDate(DateTime value)
+    {
+        var ts = DateTime.Now.Subtract(value);
+
+        if (ts.TotalMinutes < 1)
+        {
+            return "Just now";
+        }
+        if (ts.TotalMinutes < 2)
+        {
+            return "1 minute ago";
+        }
+        if (ts.TotalHours < 1)
+        {
+            return $"{ts.Minutes} minutes ago";
+        }
+        if (ts.TotalHours < 2)
+        {
+            return "1 hour ago";
+        }
+        if (ts.TotalDays < 1)
+        {
+            return $"{ts.Hours} hours ago";
+        }
+        if (ts.TotalDays is >= 1 and < 2)
+        {
+            return "1 day ago";
+        }
+        if (ts.TotalDays is >= 2 and < 3)
+        {
+            return "2 days ago";
+        }
+
+        return value.ToString("dd/MM/yyyy");
+    }
 }
