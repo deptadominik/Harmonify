@@ -1,6 +1,7 @@
 using System.Net;
 using System.Net.Http.Json;
 using System.Text.Json;
+using Harmonify.Shared.DTO;
 
 namespace Harmonify.Client.Services.CommentLike;
 
@@ -27,6 +28,22 @@ public class CommentLikeService : ICommentLikeService
             new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
 
         return like;
+    }
+    
+    public async Task<ICollection<CommentLikeDTO>> GetLikesAsync(Guid commentId)
+    {
+        var response = await httpClient
+            .GetAsync($"CommentLike/all/{commentId}");
+
+        if (response.StatusCode == HttpStatusCode.NoContent)
+            return ArraySegment<CommentLikeDTO>.Empty;
+
+        var content = await response.Content.ReadAsStringAsync();
+
+        var likes = JsonSerializer.Deserialize<ICollection<CommentLikeDTO>>(content,
+            new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+
+        return likes;
     }
     
     public async Task<Guid?> CreateAsync(object body)

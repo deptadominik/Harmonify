@@ -19,6 +19,14 @@ public class CommentLikeRepository
             .FirstOrDefaultAsync(cl => cl.Id == likeId);
     }
     
+    public async Task<ICollection<CommentLike>> GetLikesAsync(Guid commentId)
+    {
+        return await ctx.CommentLikes
+            .Where(cl => cl.CommentId == commentId)
+            .Include(cl => cl.User)
+            .ToListAsync();
+    }
+    
     public async Task<bool> AddAsync(CommentLike like)
     {
         await ctx.CommentLikes.AddAsync(like);

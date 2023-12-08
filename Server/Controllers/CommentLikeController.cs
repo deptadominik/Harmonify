@@ -1,5 +1,6 @@
 using Harmonify.Server.Commands.CommentLike;
 using Harmonify.Server.Queries.CommentLike;
+using Harmonify.Shared.DTO;
 using Harmonify.Shared.Models;
 using MediatR;
 using Microsoft.AspNetCore.Mvc;
@@ -22,6 +23,18 @@ public class CommentLikeController : ControllerBase
     {
         var entity = await _mediator
             .Send(new GetCommentLikeQuery { CommentLikeId = id });
+
+        if (entity == null)
+            return NoContent();
+
+        return Ok(entity);
+    }
+    
+    [HttpGet("all/{commentId:guid}")]
+    public async Task<ActionResult<ICollection<CommentLikeDTO>>> GetCommentLikes(Guid commentId)
+    {
+        var entity = await _mediator
+            .Send(new GetCommentLikesQuery { CommentId = commentId });
 
         if (entity == null)
             return NoContent();

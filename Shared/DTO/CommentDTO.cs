@@ -28,7 +28,7 @@ public class CommentDTO
     
     public ICollection<CommentDTO> Replies { get; set; }
     
-    public ICollection<CommentLike> Likes { get; set; }
+    public ICollection<CommentLikeDTO> Likes { get; set; }
     
     public Guid PostId { get; set; }
     
