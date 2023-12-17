@@ -1,0 +1,231 @@
+@page "/Chat"
+@using Microsoft.AspNetCore.SignalR.Client
+@using Harmonify.Client.Components
+@using Harmonify.Client.Services.ApplicationUser
+@using Harmonify.Client.Services.Friendship
+@using Harmonify.Client.Services.Message
+@using Harmonify.Client.Services.Notification
+@using Harmonify.Shared.DTO
+@using Harmonify.Shared.Hub
+@inject AuthenticationStateProvider AuthenticationStateProvider
+
+@implements IAsyncDisposable
+
+@inject NavigationManager NavigationManager
+
+<AuthorizeView Context="Authorize">
+    <Authorized>
+        <div class="container-fluid">
+            <div class="card br-0 mt-1">
+                <div class="card-body bg-light d-flex">
+                    <div class="row" style="flex: 1">
+                        <div class="col-sm-3 col-12">
+                            <ChatsList Loading="_loadingUsers" CurrentUserId="@CurrentUser?.Id" Chats="Chats" OnUserSelected="@(args => OnUserSelected(args.Item1, args.Item2))"/>
+                        </div>
+                        <div class="col-sm-6 col-12 d-flex px-0 justify-content-center">
+                            <ChatDetails SelectedUser="_selectedUser"
+                                         NewIncomingMessage="@_newIncomingMessage"
+                                         OnIncomingMessageRecieved="@(() => _newIncomingMessage = null)"
+                                         OnCancel="HandleChatDetailsCancel"/>
+                        </div>
+                        <div class="col-sm-3 col-12">
+                            <UsersList Loading="_loadingUsers" Users="Users" OnUserFromListSelected="OnUserFromListSelected"/>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </Authorized>
+    <NotAuthorized>
+        <div class="my-container">
+            <div class="my-sub-container p-2 ">
+                <div style="text-align: center;">
+                    <h3>Log in, to see your chats.</h3>
+                </div>
+            </div>
+        </div>
+    </NotAuthorized>
+</AuthorizeView>
+
+@code {
+    [CascadingParameter(Name = "AuthenticationState")]
+    public AuthenticationState AuthenticationState { get; set; }
+
+    private HubConnection? _hubConnection;
+
+    private bool _loadingUsers = false;
+    
+    public ICollection<ApplicationUserDTO> Users { get; set; } = new HashSet<ApplicationUserDTO>();
+    
+    public IList<MessageDTO> Chats { get; set; } = new List<MessageDTO>();
+
+    private ApplicationUserDTO? _selectedUser = null;
+    
+    private ApplicationUserDTO? CurrentUser = null;
+    
+    private MessageDTO? _newIncomingMessage = null;
+
+    [Inject]
+    public IMessageService MessageService { get; set; }
+
+    [Inject]
+    public IFriendshipService FriendshipService { get; set; }
+
+    [Inject]
+    public IApplicationUserService UserService { get; set; }
+    
+    [Inject]
+    public INotificationService NotificationService { get; set; }
+
+    protected override async void OnInitialized()
+    {
+        base.OnInitialized();
+
+        var authState = await AuthenticationStateProvider
+            .GetAuthenticationStateAsync();
+
+        if (authState.User.Identity.Name != null)
+        {
+            CurrentUser = await UserService
+                .GetUserByEmailAsync(authState.User.Identity?.Name);
+        }
+
+        if (CurrentUser != null)
+        {
+            _hubConnection = await ConfigureHubConnection();
+            _loadingUsers = true;
+            var usersList = await FriendshipService.GetMyFriendsWithAvatarAsync(CurrentUser.Id);
+            var chatsList = await MessageService.GetLastMessages(CurrentUser.Id);
+
+            await _hubConnection.StartAsync();
+
+            if (usersList is not null)
+            {
+                Users = usersList;
+            }
+
+            if (chatsList is not null)
+            {
+                Chats = chatsList.ToList();
+            }
+            
+            await NotificationService.DeleteAllMessageNotificationsAsync(CurrentUser.Id);
+
+            _loadingUsers = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task OnUserSelected(MessageDTO message, ApplicationUserDTO user)
+    {
+        _selectedUser = user;
+
+        var selectedChatUser = Chats.FirstOrDefault(c => c.FromUser.IsSelected || c.ToUser.IsSelected);
+        if (selectedChatUser is not null)
+        {
+            selectedChatUser.FromUser.IsSelected = false;
+            selectedChatUser.ToUser.IsSelected = false;
+        }
+
+        var chatUser = Chats.FirstOrDefault(c => c.FromUserId == user.Id || c.ToUserId == user.Id);
+        if (chatUser is null)
+        {
+            if (message.FromUserId == user.Id)
+                message.FromUser.IsSelected = true;
+            else
+                message.ToUser.IsSelected = true;
+
+            Chats.Add(message);
+        }
+        else
+        {
+            if (chatUser.FromUserId == user.Id)
+                chatUser.FromUser.IsSelected = true;
+            else
+                chatUser.ToUser.IsSelected = true;
+        }
+    }
+
+    private async Task OnUserFromListSelected(ApplicationUserDTO user)
+    {
+        _selectedUser = user;
+
+        var selectedChatUser = Chats.FirstOrDefault(c => c.FromUser.IsSelected || c.ToUser.IsSelected);
+        if (selectedChatUser is not null)
+        {
+            selectedChatUser.FromUser.IsSelected = false;
+            selectedChatUser.ToUser.IsSelected = false;
+        }
+
+        var chatUser = Chats.FirstOrDefault(c => c.FromUserId == user.Id || c.ToUserId == user.Id);
+        if (chatUser is null)
+        {
+            var message = new MessageDTO()
+            {
+                ToUserId = user.Id,
+                ToUser = user,
+                FromUserId = CurrentUser.Id,
+                FromUser = CurrentUser,
+                Content = "Empty",
+                SentOn = DateTime.Now
+            };
+            if (message.FromUserId == user.Id)
+                message.FromUser.IsSelected = true;
+            else
+                message.ToUser.IsSelected = true;
+
+            Chats.Add(message);
+        }
+        else
+        {
+            if (chatUser.FromUserId == user.Id)
+                chatUser.FromUser.IsSelected = true;
+            else
+                chatUser.ToUser.IsSelected = true;
+        }
+    }
+
+    private async Task HandleChatDetailsCancel()
+    {
+        _selectedUser = null;
+    }
+
+    private async Task<HubConnection> ConfigureHubConnection()
+    {
+        var hubConnection = new HubConnectionBuilder()
+            .WithUrl(NavigationManager.ToAbsoluteUri("/hubs/chat"))
+            .Build();
+
+        hubConnection.On<string, MessageDTO>(nameof(IChatHubClient.MessageReceived), async (userId, messageDto) =>
+        {
+            if (userId == CurrentUser.Id)
+            {
+                if (!Chats.Any(c => c.FromUserId == messageDto.FromUserId) &&
+                    !Chats.Any(c => c.ToUserId == messageDto.FromUserId))
+                {
+                    var fromUser = Users.FirstOrDefault(u => u.Id == messageDto.FromUserId);
+                    messageDto.FromUser = fromUser;
+                    messageDto.ToUser = CurrentUser;
+                    Chats.Insert(0, messageDto!);
+                }
+                else
+                {
+                    if (_selectedUser?.Id == messageDto.FromUserId)
+                    {
+                        _newIncomingMessage = messageDto;
+                        await NotificationService.DeleteAllMessageNotificationsAsync(CurrentUser.Id);
+                    }
+                }
+                StateHasChanged();
+            }
+        });
+
+        return hubConnection;
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        if (_hubConnection is not null)
+            await _hubConnection.DisposeAsync();
+    }
+}

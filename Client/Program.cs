@@ -8,6 +8,7 @@ using Harmonify.Client.Services.AvatarImage;
 using Harmonify.Client.Services.CommentLike;
 using Harmonify.Client.Services.CommentService;
 using Harmonify.Client.Services.Friendship;
+using Harmonify.Client.Services.Message;
 using Harmonify.Client.Services.Notification;
 using Harmonify.Client.Services.Post;
 using Harmonify.Client.Services.PostImage;
@@ -33,6 +34,7 @@ builder.Services.AddScoped<IPostLikeService, PostLikeService>();
 builder.Services.AddScoped<ICommentService, CommentService>();
 builder.Services.AddScoped<ICommentLikeService, CommentLikeService>();
 builder.Services.AddScoped<IPostImageService, PostImageService>();
+builder.Services.AddScoped<IMessageService, MessageService>();
 builder.Services.AddScoped<AzureStorageHelper>();
 
 builder.Services.AddApiAuthorization();

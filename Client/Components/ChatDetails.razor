@@ -1,0 +1,254 @@
+@using System.Net.Http.Headers;
+@using Harmonify.Client.Services.ApplicationUser
+@using Harmonify.Client.Services.Message
+@using Harmonify.Client.Services.Notification
+@using Harmonify.Shared.DTO
+@using Harmonify.Shared.Enums
+@using Harmonify.Shared.Models
+@inject HttpClient Client
+@inject IJSRuntime JsRuntime
+@inject AuthenticationStateProvider AuthenticationStateProvider
+
+@if (SelectedUser is null)
+{
+    <!--suppress CssInvalidPropertyValue -->
+    <h2 style="text-align: center;">Select a user to start a conversation</h2>
+}
+else
+{
+    <div style="width: -webkit-fill-available;" class="ui raised segment">
+        <div class="header d-flex justify-content-between bg-main ui raised tiny segment harmonify-background-color">
+            <h4 class="m-0 p-1">@SelectedUser.FullName</h4>
+            <button class="btn btn-danger btn-sm" @onclick="HandleCancelClick">x</button>
+        </div>
+
+        <div class="messages-list">
+
+            @if (!string.IsNullOrWhiteSpace(_errorMessage))
+            {
+                <div class="header d-flex justify-content-between bg-danger">
+                    <span class="text-white">@_errorMessage</span>
+                    <button class="btn btn-danger btn-sm" @onclick="() => _errorMessage = null">x</button>
+                </div>
+            }
+            @if (!string.IsNullOrWhiteSpace(_infoMessage))
+            {
+                <div class="header d-flex justify-content-between bg-warning">
+                    <span class="text-white">@_infoMessage</span>
+                </div>
+            }
+            <ul id="messages-ul" style="padding: 5px">
+                @if (_loadingMessages)
+                {
+                    <li class="list-group-item">
+                        <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+                        Loading messages...
+                    </li>
+                }
+                else
+                {
+                    @foreach (var msg in _messages)
+                    {
+                        var incoming = msg.ToUserId == CurrentUser.Id;
+
+                        var cls = $"justify-content-{(incoming ? "start" : "end")}";
+
+                        <li class="d-flex @cls">
+                            <p class="single-msg @(incoming ? "other" : "me")">
+                                @msg.Content
+                                <br>
+                                <small class="msg-dt">
+                                    @if (msg.SentOn.Date == DateTime.Today.Date)
+                                    {
+                                        <span>@msg.SentOn.ToShortTimeString()</span>
+                                    }
+                                    else
+                                    {
+                                        <span>@msg.SentOn.ToShortDateString() | @msg.SentOn.ToShortTimeString()</span>
+                                    }
+                                </small>
+                            </p>
+                        </li>
+                    }
+                }
+            </ul>
+        </div>
+        <div class="message-input">
+
+            <EditForm Model="_messageModel" OnValidSubmit="HandleSendMessageSubmit">
+                <div class="input-group">
+                    <InputText @bind-Value="_messageModel.NewMessage" placeholder="Enter message here..." class="form-control"/>
+                    <button class="btn btn-success " type="submit">Send</button>
+                </div>
+            </EditForm>
+
+        </div>
+    </div>
+}
+
+@code {
+
+    [CascadingParameter(Name = "AuthenticationState")]
+    public AuthenticationState AuthenticationState { get; set; }
+
+    private ApplicationUserDTO CurrentUser;
+
+    [Parameter]
+    public ApplicationUserDTO? SelectedUser { get; set; }
+
+    [Parameter]
+    public EventCallback<bool> OnCancel { get; set; }
+
+    [Parameter]
+    public EventCallback OnIncomingMessageRecieved { get; set; }
+
+    [Parameter]
+    public MessageDTO? NewIncomingMessage { get; set; }
+
+    [Inject]
+    public IApplicationUserService UserService { get; set; }
+
+    [Inject]
+    public IMessageService MessageService { get; set; }
+    
+    [Inject]
+    public INotificationService NotificationService { get; set; }
+
+    private IList<MessageDTO> _messages = new List<MessageDTO>();
+
+    private string? _errorMessage;
+    
+    private string? _infoMessage;
+    
+    private string previousSelectedUserId;
+    
+    private bool _scrollToBottom = false;
+    
+    private bool _loadingMessages = false;
+
+    private MessageModel _messageModel = new();
+
+    public class MessageModel
+    {
+        public string NewMessage { get; set; }
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        var authState = await AuthenticationStateProvider
+            .GetAuthenticationStateAsync();
+
+        if (authState.User.Identity.Name != null)
+        {
+            CurrentUser = await UserService
+                .GetUserByEmailAsync(authState.User.Identity?.Name);
+        }
+    }
+
+    protected override async Task OnParametersSetAsync()
+    {
+        if (NewIncomingMessage is not null)
+        {
+            _messages.Add(NewIncomingMessage);
+            await OnIncomingMessageRecieved.InvokeAsync();
+            _scrollToBottom = true;
+        }
+
+        if (SelectedUser is not null && SelectedUser.Id != previousSelectedUserId)
+        {
+            previousSelectedUserId = SelectedUser.Id;
+            await LoadMessagesAsync();
+            _scrollToBottom = true;
+        }
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (_scrollToBottom)
+        {
+            _scrollToBottom = false;
+            await JsRuntime.InvokeVoidAsync("window.scrollToLastMessage");
+        }
+    }
+
+    private async Task LoadMessagesAsync()
+    {
+        try
+        {
+            _loadingMessages = true;
+            _messages.Clear();
+            var allMessages = await MessageService.GetMessages(userId: CurrentUser.Id, otherUserId: SelectedUser.Id);
+
+            if (allMessages.Any())
+            {
+                _messages = allMessages.ToList();
+                _errorMessage = null;
+                _infoMessage = null;
+            }
+            else
+            {
+                _infoMessage = $"There is no message between you and {SelectedUser.FullName}";
+            }
+        }
+        finally
+        {
+            _loadingMessages = false;
+        }
+    }
+
+    private async Task HandleCancelClick()
+    {
+        var isUserHasMessages = _messages.Any();
+        var shouldRemoveFromChatsList = !isUserHasMessages;
+        await OnCancel.InvokeAsync(shouldRemoveFromChatsList);
+    }
+
+    private async Task HandleSendMessageSubmit()
+    {
+        if (!string.IsNullOrWhiteSpace(_messageModel.NewMessage))
+        {
+            var sendMessageDto = new Message
+            {
+                Id = Guid.NewGuid(),
+                SentOn = DateTime.Now,
+                FromUserId = CurrentUser.Id,
+                ToUserId = SelectedUser!.Id,
+                Content = _messageModel.NewMessage
+            };
+            var response = await MessageService.CreateAsync(sendMessageDto);
+
+            if (response != null)
+            {
+                var notificationBody = new
+                {
+                    Type = NotificationType.Message,
+                    Description = $"{CurrentUser.FullName} sent you a message.",
+                    MarkedAsSeen = false,
+                    ReceivedAt = DateTime.Now,
+                    ReferenceUrl = "/Chat",
+                    UserId = SelectedUser.Id
+                };
+                        
+                await NotificationService.CreateAsync(notificationBody);
+                
+                var messageDto = new MessageDTO
+                {
+                    FromUserId = CurrentUser.Id,
+                    ToUserId = SelectedUser!.Id,
+                    Content = _messageModel.NewMessage,
+                    SentOn = DateTime.Now
+                };
+                _messages.Add(messageDto);
+                _scrollToBottom = true;
+                _messageModel.NewMessage = "";
+                _errorMessage = null;
+                _infoMessage = null;
+                StateHasChanged();
+            }
+            else
+            {
+                _errorMessage = "Error sending message";
+            }
+        }
+    }
+}

@@ -1,3 +1,5 @@
+using System.ComponentModel.DataAnnotations.Schema;
+
 namespace Harmonify.Shared.DTO;
 
 public class ApplicationUserDTO
@@ -28,4 +30,7 @@ public class ApplicationUserDTO
     public string? AvatarFileName { get; set; }
     
     public string? AvatarSource { get; set; }
+    
+    [NotMapped]
+    public bool IsSelected { get; set; }
 }

@@ -4,9 +4,9 @@ using Azure.Identity;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.EntityFrameworkCore;
 using Harmonify.Server.Data;
+using Harmonify.Server.Hubs;
 using Harmonify.Server.Repositories;
 using Harmonify.Shared.Models;
-using Microsoft.AspNetCore.Http.Json;
 using Microsoft.AspNetCore.Identity;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -14,7 +14,6 @@ var builder = WebApplication.CreateBuilder(args);
 var keyVaultEndpoint = new Uri("https://harmonifykeyvault.vault.azure.net/");
 var conf = builder.Configuration.AddAzureKeyVault(keyVaultEndpoint, new DefaultAzureCredential()).Build();
 
-// Add services to the container.
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection") ??
                        throw new InvalidOperationException("Connection string 'DefaultConnection' not found.");
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
@@ -39,9 +38,21 @@ builder.Services.AddScoped<PostLikeRepository>();
 builder.Services.AddScoped<CommentRepository>();
 builder.Services.AddScoped<CommentLikeRepository>();
 builder.Services.AddScoped<PostImageRepository>();
+builder.Services.AddScoped<MessageRepository>();
 
 builder.Services.AddDefaultIdentity<ApplicationUser>(options => options.SignIn.RequireConfirmedAccount = true)
     .AddEntityFrameworkStores<ApplicationDbContext>();
+builder.Services.AddIdentityServer()
+    .AddApiAuthorization<ApplicationUser, ApplicationDbContext>();
+
+
+builder.Services
+    .AddSignalR()
+    .AddHubOptions<ChatHub>(options =>
+    {
+        options.EnableDetailedErrors = true;
+    });
+
 builder.Services
     .AddAuthentication()
     .AddGoogle(opts =>
@@ -51,8 +62,7 @@ builder.Services
         opts.SignInScheme = IdentityConstants.ExternalScheme;
     });
 
-builder.Services.AddIdentityServer()
-    .AddApiAuthorization<ApplicationUser, ApplicationDbContext>();
+
 
 builder.Services.AddAuthentication()
     .AddIdentityServerJwt();
@@ -64,6 +74,11 @@ builder.Services.AddControllersWithViews()
     );
 
 builder.Services.AddRazorPages();
+
+builder.Services.AddLogging(builder => builder
+    .AddConsole()
+    .SetMinimumLevel(LogLevel.None)
+);
 
 builder.Services.AddAutoMapper(AppDomain.CurrentDomain.GetAssemblies());
 
@@ -97,6 +112,8 @@ app.UseRouting();
 
 app.UseIdentityServer();
 app.UseAuthorization();
+
+app.MapHub<ChatHub>("/hubs/chat");
 
 app.UseCors("CorsPolicy");
 app.MapRazorPages();

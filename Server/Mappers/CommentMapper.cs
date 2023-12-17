@@ -27,4 +27,5 @@ public class CommentMapper : Profile
                 m => m.MapFrom(s => s.Post))
             .ForMember(p => p.ParentComment,
                 m => m.MapFrom(s => s.ParentComment));
-    }}
+    }
+}

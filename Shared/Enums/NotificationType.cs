@@ -6,5 +6,6 @@ public enum NotificationType
     PostLike,
     Comment,
     CommentReply,
-    CommentLike
+    CommentLike,
+    Message
 }

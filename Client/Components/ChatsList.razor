@@ -1,0 +1,45 @@
+@using Harmonify.Shared.DTO
+@using Harmonify.Shared.Models
+<h4 class="ui raised segment" style="text-align: center;">Chats</h4>
+<ul class="list-group list-group-flush">
+    @if (Loading)
+    {
+        <li class="list-group-item">
+            <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+            Loading...
+        </li>
+    }
+    else
+    {
+        @foreach (var chat in Chats)
+        {
+            @if (chat.FromUserId == CurrentUserId)
+            {
+                <li style="text-align: center;" class="list-group-item @(chat.ToUser.IsSelected ? "bg-success text-white" : "")" @onclick="() => HandleUserClick(chat, chat.ToUser)">@chat.ToUser.FullName</li>
+            }
+            else
+            {
+                <li style="text-align: center;" class="list-group-item @(chat.FromUser.IsSelected ? "bg-success text-white" : "")" @onclick="() => HandleUserClick(chat, chat.FromUser)">@chat.FromUser.FullName</li>
+            }
+        }
+    }
+</ul>
+
+@code {
+    [Parameter]
+    public IEnumerable<MessageDTO> Chats { get; set; } = Enumerable.Empty<MessageDTO>();
+
+    [Parameter]
+    public bool Loading { get; set; }
+    
+    [Parameter]
+    public string CurrentUserId { get; set; }
+
+    [Parameter]
+    public EventCallback<(MessageDTO, ApplicationUserDTO)> OnUserSelected { get; set; }
+
+    private async Task HandleUserClick(MessageDTO chat, ApplicationUserDTO user)
+    {
+        await OnUserSelected.InvokeAsync((chat, user));
+    }
+}

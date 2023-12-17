@@ -379,6 +379,36 @@ namespace Harmonify.Server.Data.Migrations
                     b.ToTable("Friendship", (string)null);
                 });
 
+            modelBuilder.Entity("Harmonify.Shared.Models.Message", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Content")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("FromUserId")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime>("SentOn")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("ToUserId")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("FromUserId");
+
+                    b.HasIndex("ToUserId");
+
+                    b.ToTable("Message", (string)null);
+                });
+
             modelBuilder.Entity("Harmonify.Shared.Models.Notification", b =>
                 {
                     b.Property<Guid>("Id")
@@ -705,6 +735,25 @@ namespace Harmonify.Server.Data.Migrations
                     b.Navigation("FriendUser");
 
                     b.Navigation("MainUser");
+                });
+
+            modelBuilder.Entity("Harmonify.Shared.Models.Message", b =>
+                {
+                    b.HasOne("Harmonify.Shared.Models.ApplicationUser", "FromUser")
+                        .WithMany()
+                        .HasForeignKey("FromUserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Harmonify.Shared.Models.ApplicationUser", "ToUser")
+                        .WithMany()
+                        .HasForeignKey("ToUserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("FromUser");
+
+                    b.Navigation("ToUser");
                 });
 
             modelBuilder.Entity("Harmonify.Shared.Models.Notification", b =>

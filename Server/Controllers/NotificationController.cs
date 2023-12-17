@@ -92,4 +92,13 @@ public class NotificationController : ControllerBase
         
         return updated ? Ok() : BadRequest("Something went wrong.");
     }
+    
+    [HttpDelete("delete/messages/all/{userId}")]
+    public async Task<ActionResult<Notification?>> MarkAllMessagesAsSeen(string userId)
+    {
+        var updated = await _mediator
+            .Send(new DeleteAllMessageNotificationsCommand { UserId = userId} );
+        
+        return updated ? Ok() : BadRequest("Something went wrong.");
+    }
 }

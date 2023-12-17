@@ -1,4 +1,5 @@
 using Harmonify.Server.Data;
+using Harmonify.Shared.Enums;
 using Harmonify.Shared.Models;
 using Microsoft.EntityFrameworkCore;
 
@@ -48,13 +49,23 @@ public class NotificationRepository
         return await ctx.SaveChangesAsync() > 0;
     }
     
-    public async Task<bool> MarkAllAsSeen(string userId)
+    public async Task<bool> MarkAllNotificationsAsSeen(string userId)
     {
         var entities = ctx.Notifications
             .Where(n => n.UserId == userId && n.MarkedAsSeen == false);
 
         foreach (var entity in entities)
             entity.MarkedAsSeen = true;
+        
+        return await ctx.SaveChangesAsync() > 0;
+    }
+    
+    public async Task<bool> DeleteAllMessageNotifications(string userId)
+    {
+        var entities = ctx.Notifications
+            .Where(n => n.UserId == userId && n.MarkedAsSeen == false && n.Type == NotificationType.Message);
+
+         ctx.Notifications.RemoveRange(entities);
         
         return await ctx.SaveChangesAsync() > 0;
     }

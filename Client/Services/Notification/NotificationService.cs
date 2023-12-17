@@ -87,4 +87,16 @@ public class NotificationService : INotificationService
             _ => false
         };
     }
+    
+    public async Task<bool> DeleteAllMessageNotificationsAsync(string userId)
+    {
+        using var response = await httpClient.DeleteAsync($"/Notification/delete/messages/all/{userId}");
+
+        return response.StatusCode switch
+        {
+            HttpStatusCode.NotFound => false,
+            HttpStatusCode.OK => true,
+            _ => false
+        };
+    }
 }

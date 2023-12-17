@@ -1,0 +1,39 @@
+@using System.Net.Http.Headers
+@using Harmonify.Shared.DTO
+@inject HttpClient Client
+
+<h4 class="ui raised segment" style="text-align: center;">Users</h4>
+<ul class="list-group list-group-flush">
+    @if (Loading)
+    {
+        <li class="list-group-item">
+            <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+            Loading...
+        </li>
+    }
+    else
+    {
+        foreach (var user in Users)
+        {
+            <li style="text-align: center;" class="list-group-item" @onclick="() => HandleUserClick(user)">
+                @user.FullName
+            </li>
+        }
+    }
+</ul>
+
+@code {
+    [Parameter]
+    public EventCallback<ApplicationUserDTO> OnUserFromListSelected { get; set; }
+
+    [Parameter]
+    public bool Loading { get; set; }
+
+    [Parameter]
+    public ICollection<ApplicationUserDTO> Users { get; set; } = default!;
+
+    private async Task HandleUserClick(ApplicationUserDTO user)
+    {
+        await OnUserFromListSelected.InvokeAsync(user);
+    }
+}

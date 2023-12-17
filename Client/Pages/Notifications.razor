@@ -18,7 +18,7 @@
             </div>
             @if (MyNotSeenNotifications?.Count > 1)
             {
-                <button style="margin-bottom: 1%;" @onclick="async () => await MarkAllAsSeen()" class="small circular harmonify-background-color ui button">
+                <button style="margin-bottom: 1%;" @onclick="async () => await MarkAllNotificationsAsSeen()" class="small circular harmonify-background-color ui button">
                     Mark all as seen
                 </button>
             }
@@ -56,12 +56,11 @@
                                 <div class="date">
                                     <span>@Index.GetDate(notification.ReceivedAt)</span>
                                 </div>
-                                <a class="summary" href="@notification.ReferenceUrl">
+                                <a class="summary" @onclick="() => GoToReferenceUrl(notification)">
                                     @notification.Description
                                 </a>
                                 <div class="meta" style="margin: 0 0 0 0.5rem;">
                                     <a class="like" @onclick="async () => await MarkAsSeen(notification.Id)">
-                                        @* TODO - add button 'Mark all as seen'*@
                                         <i class="check square outline icon"></i>Mark as seen
                                     </a>
                                 </div>
@@ -169,7 +168,7 @@
             await JsRuntime.InvokeVoidAsync("openNag");
     }
 
-    private async Task MarkAsSeen(Guid notificationId)
+    private async Task MarkAsSeen(Guid notificationId, bool reload = true)
     {
         var body = new
         {
@@ -183,14 +182,20 @@
             await JsRuntime.InvokeVoidAsync(
                 "alert",
                 "Something went wrong, we couldn't mark this notification as seen.");
-        else
+        else if (reload)
             Navigation.NavigateTo("/Notifications", forceLoad: true);
     }
 
-    private async Task MarkAllAsSeen()
+    private async Task MarkAllNotificationsAsSeen()
     {
         await NotificationService.MarkAllAsSeenAsync(new { UserId = User.Id });
 
         Navigation.NavigateTo("/Notifications", forceLoad: true);
+    }
+
+    private async void GoToReferenceUrl(Notification notification)
+    {
+        await MarkAsSeen(notification.Id, reload: false);
+        Navigation.NavigateTo(notification.ReferenceUrl, forceLoad: true);
     }
 }

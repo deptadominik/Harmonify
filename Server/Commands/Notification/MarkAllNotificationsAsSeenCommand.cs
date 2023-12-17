@@ -18,7 +18,7 @@ public class MarkAllNotificationsAsSeenCommand: IRequest<bool>
 
         public async Task<bool> Handle(MarkAllNotificationsAsSeenCommand request, CancellationToken cancellationToken)
         {
-            var updated = await _repository.MarkAllAsSeen(request.UserId);
+            var updated = await _repository.MarkAllNotificationsAsSeen(request.UserId);
             
             return updated;
         }

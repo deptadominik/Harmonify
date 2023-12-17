@@ -11,4 +11,6 @@ public interface INotificationService
     Task<Harmonify.Shared.Models.Notification?> MarkAsSeenAsync(object body);
 
     Task<bool> MarkAllAsSeenAsync(object body);
+    
+    Task<bool> DeleteAllMessageNotificationsAsync(string userId);
 }

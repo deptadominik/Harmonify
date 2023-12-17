@@ -5,6 +5,7 @@
 @using Harmonify.Client.Services.AvatarImage
 @using Harmonify.Client.Services.Notification
 @using Harmonify.Shared.DTO
+@using Harmonify.Shared.Enums
 @using Harmonify.Shared.Models
 @inject AuthenticationStateProvider AuthenticationStateProvider
 @inject NavigationManager Navigation
@@ -14,6 +15,12 @@
     <Authorized>
         <div class="login-display-mobile">
             <img style="margin-bottom: 0.2rem !important;" class="ui avatar image" onclick="location.href='/Identity/Account/Manage/AvatarCrop'" id="avatar-img"/>
+            @if (amountOfNotSeenMessages != 0)
+            {
+                <button @onclick="GoToChat" class="circular ui button blue">
+                    <i class="envelope outline icon"></i>@amountOfNotSeenMessages
+                </button>
+            }
             @if (amountOfNotSeenNotification != 0)
             {
                 <button onclick="location.href='Notifications'" class="circular ui button red">
@@ -21,7 +28,9 @@
                 </button>
             }
             <button onclick="location.href='authentication/profile'" class="circular harmonify-background-color ui button">
-                Hello, @if (loaded) @User?.FirstName!
+                Hello,
+                @if (loaded) @User?.FirstName
+                !
             </button>
             <button class="circular ui button grey" @onclick="BeginLogOut">
                 Log out
@@ -46,6 +55,7 @@
     private bool loaded = false;
     private string userName = null;
     private int amountOfNotSeenNotification = 0;
+    private int amountOfNotSeenMessages = 0;
 
     private ApplicationUserDTO? User { get; set; }
 
@@ -79,8 +89,13 @@
                 await JSRuntime
                     .InvokeVoidAsync("changeSrc");
 
-            amountOfNotSeenNotification = (await NotificationService
-                .GetMyNotificationsAsync(User.Id))
+            var notifications = await NotificationService
+                .GetMyNotificationsAsync(User.Id);
+            amountOfNotSeenNotification = notifications
+                .Where(x => x.Type != NotificationType.Message)
+                .Count(x => x.MarkedAsSeen == false);
+            amountOfNotSeenMessages = notifications
+                .Where(x => x.Type == NotificationType.Message)
                 .Count(x => x.MarkedAsSeen == false);
         }
         loaded = true;
@@ -91,4 +106,8 @@
         Navigation.NavigateToLogout("authentication/logout");
     }
 
+    private async void GoToChat()
+    {
+        Navigation.NavigateTo("/Chat", forceLoad: true);
+    }
 }

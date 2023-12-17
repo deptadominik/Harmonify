@@ -26,6 +26,8 @@ public class ApplicationDbContext : ApiAuthorizationDbContext<ApplicationUser>
     
     public DbSet<CommentLike> CommentLikes { get; set; }
     
+    public DbSet<Message> Messages { get; set; }
+    
     public ApplicationDbContext(
         DbContextOptions options,
         IOptions<OperationalStoreOptions> operationalStoreOptions) : base(options, operationalStoreOptions)
@@ -46,6 +48,7 @@ public class ApplicationDbContext : ApiAuthorizationDbContext<ApplicationUser>
         builder.Entity<PostImage>().ToTable("PostImage");
         builder.Entity<Comment>().ToTable("Comment");
         builder.Entity<CommentLike>().ToTable("CommentLike");
+        builder.Entity<Message>().ToTable("Message");
         
         builder.Entity<AvatarImage>()
             .Property(p => p.Id)
@@ -120,5 +123,15 @@ public class ApplicationDbContext : ApiAuthorizationDbContext<ApplicationUser>
             .WithMany(p => p.Comments)
             .HasForeignKey(c => c.AuthorId)
             .OnDelete(DeleteBehavior.Cascade);
+
+        builder.Entity<Message>()
+            .HasOne(c => c.ToUser)
+            .WithMany()
+            .HasForeignKey(c => c.ToUserId);
+        
+        builder.Entity<Message>()
+            .HasOne(c => c.FromUser)
+            .WithMany()
+            .HasForeignKey(c => c.FromUserId);
     }
 }
