@@ -103,6 +103,7 @@
                         @if (post.Author.Id == User.Id)
                         {
                             <HarmDropdown Id=@($"harm-menu-{index}")
+                                          User=@User
                                           Type=@(post.Type == PostType.Text ? DropdownType.Post : DropdownType.Image)
                                           OnMyFeed=@UpdateMyFeedValue
                                           OnShowTextPost=@UpdateShowTextPostValue
@@ -295,6 +296,7 @@
                                     @if (comment.Author.Id == User.Id)
                                     {
                                         <HarmDropdown Id=@($"comment-menu-{commentIndex}")
+                                                      User=@User
                                                       Type=DropdownType.Comment
                                                       OnHarmComments=@UpdateHarmCommentsValue
                                                       OnCommentBeingEdited=@UpdateCommentBeingEditedValue
@@ -345,6 +347,7 @@
                                                     @if (reply.Author.Id == User.Id)
                                                     {
                                                         <HarmDropdown Id=@($"comment-menu-{commentIndex}")
+                                                                      User=@User
                                                                       Type=DropdownType.Reply
                                                                       OnHarmComments=@UpdateHarmCommentsValue
                                                                       OnReplyBeingEdited=@UpdateReplyBeingEditedValue
@@ -395,6 +398,7 @@
                                                                     @if (repliedReply.Author.Id == User.Id)
                                                                     {
                                                                         <HarmDropdown Id=@($"comment-menu-{commentIndex}")
+                                                                                      User=@User
                                                                                       Type=DropdownType.ReplyToReply
                                                                                       OnHarmComments=@UpdateHarmCommentsValue
                                                                                       OnReplyToReplyBeingEdited=@UpdateReplyToReplyBeingEditedValue

@@ -24,7 +24,9 @@ public class CreateMessageCommand : IRequest<Shared.Models.Message>
             _repository = repository;
         }
 
-        public async Task<Shared.Models.Message> Handle(CreateMessageCommand request, CancellationToken cancellationToken)
+        public async Task<Shared.Models.Message> Handle(
+            CreateMessageCommand request,
+            CancellationToken cancellationToken)
         {
             var entity = new Shared.Models.Message
             {

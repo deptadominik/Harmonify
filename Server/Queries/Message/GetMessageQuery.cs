@@ -17,7 +17,8 @@ public class GetMessageQuery : IRequest<Shared.Models.Message?>
             _repository = repository;
         }
 
-        public async Task<Shared.Models.Message?> Handle(GetMessageQuery request,
+        public async Task<Shared.Models.Message?> Handle(
+            GetMessageQuery request,
             CancellationToken cancellationToken)
         {
             var post = await _repository.GetAsync(request.MessageId);

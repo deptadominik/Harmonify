@@ -27,12 +27,11 @@ public class AzureStorageHelper
 
         destFileName = destFileName.Replace(' ', '_');
 
-        var blobContainerClient = new BlobContainerClient(StorageConnectionString, ContainerName);//Use this client to perform operations on blob container.
-        var blockBlobClient = blobContainerClient.GetBlockBlobClient(destFileName);//Use this client to perform operations on block blob.
+        var blobContainerClient = new BlobContainerClient(StorageConnectionString, ContainerName);
+        var blockBlobClient = blobContainerClient.GetBlockBlobClient(destFileName);
         using(var ms = new MemoryStream(file, false))
             await blockBlobClient.UploadAsync(ms);
         
-        // return the url to the blob
         return $"{BaseUrl}{ContainerName}\\{ destFileName}";
     }
     

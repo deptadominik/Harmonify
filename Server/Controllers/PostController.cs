@@ -68,12 +68,14 @@ public class PostController : ControllerBase
             return BadRequest("Entity already exists.");
 
         if (request.PostedAt > DateTime.Now)
-            return BadRequest($"Cannot create post with {nameof(request.PostedAt)} in future.");
+            return BadRequest($"Cannot create post with " +
+                              $"{nameof(request.PostedAt)} in future.");
         
         var entity = await _mediator
             .Send(request);
         
-        return CreatedAtAction(nameof(Get), new { id = entity.Id }, entity);
+        return CreatedAtAction(nameof(Get), 
+            new { id = entity.Id }, entity);
     }
     
     [HttpDelete("{postId}")]

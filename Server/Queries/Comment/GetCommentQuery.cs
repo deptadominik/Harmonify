@@ -16,7 +16,8 @@ public class GetCommentQuery : IRequest<Shared.Models.Comment?>
             _repository = repository;
         }
 
-        public async Task<Shared.Models.Comment?> Handle(GetCommentQuery request,
+        public async Task<Shared.Models.Comment?> Handle(
+            GetCommentQuery request,
             CancellationToken cancellationToken)
         {
             var comment = await _repository.GetAsync(request.CommentId);

@@ -48,9 +48,6 @@ public class ApplicationUserController : ControllerBase
         var entities = await _mediator
             .Send(new GetApplicationUsersByPartialNameQuery { Phrase = phrase });
         
-        if (entities.IsNullOrEmpty())
-            return NoContent();
-        
         return Ok(entities);
     }
 }

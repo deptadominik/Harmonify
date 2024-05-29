@@ -64,7 +64,14 @@
         <i class="users icon"></i>
         Friends
     </h4>
-    <div class="ui special three stackable link cards">
+    
+        @if (FriendsWithAmount.Count == 0)
+        {
+            <h4 class="ui center aligned header" style="margin-top: 2em;margin-bottom: 2em;">
+                    You don't have any friends yet.
+            </h4>
+        }
+    <div class="ui special four stackable link cards">
         @foreach (var friend in FriendsWithAmount)
         {
             <div class="card">
@@ -113,6 +120,12 @@
     <div class="ui feed">
         @if (loaded)
         {
+            @if (MyHarms.Count == 0)
+            {
+                <h4 class="ui center aligned header" style="margin-top: 2em;margin-bottom: 2em;">
+                    You didn't post any harms yet.
+                </h4>
+            }
             @foreach (var post in MyHarms)
             {
                 <div class="event ui segment" style=@(post.Images.Count > 0 ? "padding: 2%;" : "padding-left: 2%;padding-right: 2%;")>
@@ -166,6 +179,7 @@
                             @if (post.Author.Id == User.Id)
                             {
                                 <HarmDropdown Id=@($"harm-menu-{index}")
+                                              User=@User
                                               Type=@(post.Type == PostType.Text ? DropdownType.Post : DropdownType.Image)
                                               OnMyFeed=@UpdateMyFeedValue
                                               OnShowTextPost=@UpdateShowTextPostValue
@@ -364,6 +378,7 @@
                                     @if (comment.Author.Id == User.Id)
                                     {
                                         <HarmDropdown Id=@($"comment-menu-{commentIndex}")
+                                                      User=@User
                                                       Type=DropdownType.Comment
                                                       OnHarmComments=@UpdateHarmCommentsValue
                                                       OnCommentBeingEdited=@UpdateCommentBeingEditedValue
@@ -414,6 +429,7 @@
                                                     @if (reply.Author.Id == User.Id)
                                                     {
                                                         <HarmDropdown Id=@($"comment-menu-{commentIndex}")
+                                                                      User=@User
                                                                       Type=DropdownType.Reply
                                                                       OnHarmComments=@UpdateHarmCommentsValue
                                                                       OnReplyBeingEdited=@UpdateReplyBeingEditedValue
@@ -464,6 +480,7 @@
                                                                     @if (repliedReply.Author.Id == User.Id)
                                                                     {
                                                                         <HarmDropdown Id=@($"comment-menu-{commentIndex}")
+                                                                                      User=@User
                                                                                       Type=DropdownType.ReplyToReply
                                                                                       OnHarmComments=@UpdateHarmCommentsValue
                                                                                       OnReplyToReplyBeingEdited=@UpdateReplyToReplyBeingEditedValue

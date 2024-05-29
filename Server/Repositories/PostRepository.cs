@@ -1,4 +1,5 @@
 using Harmonify.Server.Data;
+using Harmonify.Shared.Enums;
 using Harmonify.Shared.Models;
 using Microsoft.EntityFrameworkCore;
 
@@ -22,12 +23,12 @@ public class PostRepository
     public async Task<ICollection<Post>> GetMyFeedAsync(string userId)
     {
         var myFriends = ctx.Friendships
-            .Where(x => x.MainUserId == userId)
+            .Where(x => x.MainUserId == userId && x.Status == FriendshipStatus.Accepted)
             .Select(x => x.FriendUserId)
             .ToList();
         
         myFriends.AddRange(ctx.Friendships
-            .Where(x => x.FriendUserId == userId)
+            .Where(x => x.FriendUserId == userId && x.Status == FriendshipStatus.Accepted)
             .Select(x => x.MainUserId));
         
         return await ctx.Posts

@@ -35,6 +35,10 @@
                         <button @onclick="DeleteAvatar" type="submit" class="mb-3 negative ui fluid button">Delete avatar</button>
                     </div>
                 }
+            </div>
+        </div>
+        
+        
                 @if (file != null)
                 {
                     <div class="ui fullscreen modal front transition visible active" style="height: unset">
@@ -87,8 +91,6 @@
                     initw = 50;
                     inith = 50;
                 }
-            </div>
-        </div>
 
         <div class="col-md-6">
             @if (displayCropResult)

@@ -11,5 +11,6 @@ function searchForFriends() {
                 image: 'avatarSource',
                 url     : 'profileUrl'
             },
+            showNoResults : true
         });
 }

@@ -115,7 +115,7 @@
     <i class="users icon"></i>
     Friends
 </h4>
-<div class="ui special three stackable link cards">
+<div class="ui special four stackable link cards">
     @foreach (var friend in FriendsWithAmount)
     {
         <div class="card">
@@ -218,6 +218,7 @@
                         @if (post.Author.Id == MyUserData.Id)
                         {
                             <HarmDropdown Id=@($"harm-menu-{index}")
+                                          User=@MyUserData
                                           Type=@(post.Type == PostType.Text ? DropdownType.Post : DropdownType.Image)
                                           OnMyFeed=@UpdateMyFeedValue
                                           OnShowTextPost=@UpdateShowTextPostValue
@@ -415,6 +416,7 @@
                                     @if (comment.Author.Id == MyUserData.Id)
                                     {
                                         <HarmDropdown Id=@($"comment-menu-{commentIndex}")
+                                                      User=@MyUserData
                                                       Type=DropdownType.Comment
                                                       OnHarmComments=@UpdateHarmCommentsValue
                                                       OnCommentBeingEdited=@UpdateCommentBeingEditedValue
@@ -465,6 +467,7 @@
                                                     @if (reply.Author.Id == MyUserData.Id)
                                                     {
                                                         <HarmDropdown Id=@($"comment-menu-{commentIndex}")
+                                                                      User=@MyUserData
                                                                       Type=DropdownType.Reply
                                                                       OnHarmComments=@UpdateHarmCommentsValue
                                                                       OnReplyBeingEdited=@UpdateReplyBeingEditedValue
@@ -515,6 +518,7 @@
                                                                     @if (repliedReply.Author.Id == MyUserData.Id)
                                                                     {
                                                                         <HarmDropdown Id=@($"comment-menu-{commentIndex}")
+                                                                                      User=@MyUserData
                                                                                       Type=DropdownType.ReplyToReply
                                                                                       OnHarmComments=@UpdateHarmCommentsValue
                                                                                       OnReplyToReplyBeingEdited=@UpdateReplyToReplyBeingEditedValue

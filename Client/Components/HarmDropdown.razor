@@ -43,10 +43,10 @@
 </div>
 
 @code {
-    
-    private ApplicationUserDTO User { get; set; }
-
     private int _totalCommentCount;
+    
+    [Parameter]
+    public ApplicationUserDTO User { get; set; }
     
     [Parameter]
     public string Id { get; set; }
@@ -104,14 +104,6 @@
     
     protected override async Task OnInitializedAsync()
     {
-        var authState = await AuthenticationStateProvider
-            .GetAuthenticationStateAsync();
-
-        if (authState.User.Identity.Name != null)
-        {
-            User = await UserService
-                .GetUserByEmailAsync(authState.User.Identity?.Name);
-        }
     }
     
     private async void ShowEditTextPost(PostDTO post)
