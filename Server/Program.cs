@@ -27,6 +27,13 @@ builder.Services.AddCors(policy =>
         .AllowAnyHeader()
         .AllowAnyMethod());
 });
+builder.Services.AddLogging(loggingBuilder =>
+{
+    loggingBuilder.ClearProviders();
+    loggingBuilder.AddConsole();
+    loggingBuilder.AddDebug();
+    loggingBuilder.AddConfiguration(builder.Configuration.GetSection("Logging"));
+});
 
 builder.Services.AddSwaggerGen();
 builder.Services.AddScoped<ApplicationUserRepository>();
