@@ -6,6 +6,8 @@ public interface IPostService
 {
     Task<Harmonify.Shared.Models.Post?> GetAsync(Guid postId);
     
+    Task<PostDTO?> GetDTOAsync(Guid postId);
+    
     Task<ICollection<PostDTO>> GetMyFeedAsync(string userId);
     
     Task<ICollection<PostDTO>> GetUserPostsAsync(string userId);

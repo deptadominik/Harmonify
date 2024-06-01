@@ -30,6 +30,18 @@ public class PostController : ControllerBase
         return Ok(entity);
     }
     
+    [HttpGet("dto")]
+    public async Task<ActionResult<PostDTO?>> GetDTO(Guid id)
+    {
+        var entity = await _mediator
+            .Send(new GetPostDtoQuery { PostId = id });
+        
+        if (entity == null)
+            return NoContent();
+        
+        return Ok(entity);
+    }
+    
     [HttpGet("my-feed")]
     public async Task<ActionResult<ICollection<PostDTO>>> GetMyFeed(string userId)
     {

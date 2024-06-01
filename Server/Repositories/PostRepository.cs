@@ -17,6 +17,10 @@ public class PostRepository
     public async Task<Post?> GetAsync(Guid postId)
     {
         return await ctx.Posts
+            .Include(a => a.Author).ThenInclude(a => a.Avatar)
+            .Include(p => p.Likes)
+            .ThenInclude(pl => pl.User)
+            .Include(p => p.Images)
             .FirstOrDefaultAsync(n => n.Id == postId);
     }
     

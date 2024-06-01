@@ -1,0 +1,982 @@
+@inject IJSRuntime JsRuntime;
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@inject NavigationManager Navigation
+@page "/Post/{id}"
+@using Harmonify.Shared.DTO
+@using Harmonify.Shared.Enums
+@using Harmonify.Client.Services.ApplicationUser
+@using Harmonify.Client.Services.CommentLike
+@using Harmonify.Client.Services.CommentService
+@using Harmonify.Client.Services.Notification
+@using Harmonify.Client.Services.Post
+@using Harmonify.Client.Services.PostLike
+
+<PageTitle>Post</PageTitle>
+
+<AuthorizeView Context="Authorize">
+<Authorized>
+
+<div class="ui feed">
+    @if (loaded && _post != null)
+    {
+            <div class="event ui segment" style="padding: 2%;">
+                @if (_post?.Images.Count == 1)
+                {
+                    <div class="ui image col-md-6">
+                        <div class="carousel-inner">
+                            <div class="carousel-item active">
+                                <img class="d-block w-100" src="@_post?.Images.First().Url" alt="slide">
+                            </div>
+                        </div>
+                    </div>
+                }
+                else if (_post?.Images.Count >= 2)
+                {
+                    <div class="ui image col-md-6">
+                        <div id=@($"carousel-{_post?.Id}'") class="carousel slide" data-ride="carousel"
+                             style="max-width: 500px;">
+                            <ol class="carousel-indicators">
+                                @for (int i = 0; i < _post?.Images.Count; i++)
+                                {
+                                    <li data-target="carousel" data-slide-to="@i" class="@(i == 0 ? "active" : "")"></li>
+                                }
+                            </ol>
+                            <div class="carousel-inner">
+                                @for (int i = 0; i < _post.Images.Count; i++)
+                                {
+                                    <div class="carousel-item @(i == 0 ? "active" : "")">
+                                        <img class="d-block w-100" src="@_post?.Images.ElementAt(i).Url" alt="slide">
+                                    </div>
+                                }
+                            </div>
+                            <a href=@($"#carousel-{_post.Id}'") class="carousel-control-prev" role="button" data-slide="prev">
+                                <span class="carousel-control-prev-icon" aria-hidden="true"></span>
+                                <span class="sr-only">Previous</span>
+                            </a>
+                            <a href=@($"#carousel-{_post.Id}'") class="carousel-control-next" role="button" data-slide="next">
+                                <span class="carousel-control-next-icon" aria-hidden="true"></span>
+                                <span class="sr-only">Next</span>
+                            </a>
+                        </div>
+                    </div>
+                }
+                <div class="label" style="align-self: center;">
+                    <img src="@_post?.Author.AvatarSource">
+                </div>
+                <div class=@(_post?.Images.Count > 0 ? "content col-md-6" : "content")
+                     style=@(_post?.Images.Count > 0 ? "margin: unset;" : "")>
+                    <div class="summary">
+                        <a>@_post?.Author.FirstName @_post?.Author.LastName</a> posted a harm
+                        @if (_post?.Author.Id == User.Id)
+                        {
+                            <HarmDropdown Id=@($"harm-menu-{index}")
+                                          User=@User
+                                          Type=@(_post.Type == PostType.Text ? DropdownType.Post : DropdownType.Image)
+                                          OnMyFeed=@UpdateMyFeedValue
+                                          OnShowTextPost=@UpdateShowTextPostValue
+                                          OnShowImagePost=@UpdateShowImagePostValue
+                                          OnShowEditTextPost=@UpdateShowEditTextPostValue
+                                          OnShowEditImagePost=@UpdateShowEditImagePostValue
+                                          OnPostBeingEdited="@UpdatePostBeingEditedValue"
+                                          PostBeingEdited=@_post/>
+                            @Increment()
+                        }
+                        @if (_post.EditedAt == null)
+                        {
+                            <div class="date" style="margin-left: 1%;display: inline-flex; float: right;">
+                                @GetDate(_post.PostedAt)
+                            </div>
+                        }
+                        else
+                        {
+                            <span class="date" style="margin-left: 1%;display: inline-flex; float: right;">@GetDate(_post.EditedAt.Value)</span>
+                            <div class="ui yellow circular tiny label" style="display: inline-flex; float: right;">
+                                Edited
+                            </div>
+                        }
+                    </div>
+                    <div class="extra text">
+                        @_post.Content
+                    </div>
+                    <div class="meta" style=@(_post.Images.Count > 0 ? "position: absolute; bottom: 0;" : "")>
+                        @if (_post.Likes.Count == 0)
+                        {
+                            <a class="like" @onclick="async () => await LikePost(_post.Id, _post.Author.Id)">
+                                <i class="like icon"></i>
+                                <span>Be the first person to like this post</span>
+                            </a>
+                        }
+                        else
+                        {
+                            @if (_post.Likes.Count == 1 && _post.Likes.All(x => x.UserId != User.Id))
+                            {
+                                var userLike = _post.Likes.First().User;
+                                <a class="like" @onclick="async () => await LikePost(_post.Id, _post.Author.Id)">
+                                    <i class="like icon"></i>
+                                </a>
+                                <span style="margin-left: 0;"><a @onclick="() => Navigation.NavigateTo(userLike.ProfileUrl, forceLoad: true)">
+                                    <b>@userLike.FullName</b>
+                                    </a> likes it
+                                </span>
+                            }
+                            else if (_post.Likes.Count > 1 && _post.Likes.All(x => x.UserId != User.Id))
+                            {
+                                <a class="like" @onclick="async () => await LikePost(_post.Id, _post.Author.Id)">
+                                    <i class="like icon"></i>
+                                </a>
+                                <span style="margin-left: 0;">
+                                    <a @onclick="() => ShowPostLikesModal(_post)">
+                                        <b>@_post.Likes.Count likes</b>
+                                    </a>
+                                </span>
+                            }
+                            else if (_post.Likes.Count > 2)
+                            {
+                                var count = _post.Likes.Count - 1;
+                                <a class="like" @onclick="async () => await UnlikePost(_post.Likes.First(x => x.UserId == User.Id).Id)">
+                                    <i class="like icon red"></i>
+                                </a>
+                                <span style="margin-left: 0;">You and <a @onclick="() => ShowPostLikesModal(_post)">
+                                    <b>@count other people</b>
+                                    </a> like it
+                                </span>
+                            }
+                            else if (_post.Likes.Count == 2)
+                            {
+                                var userLike = _post.Likes.First(x => x.UserId != User.Id).User;
+                                <a class="like" @onclick="async () => await UnlikePost(_post.Likes.First(x => x.UserId == User.Id).Id)">
+                                    <i class="like icon red"></i>
+                                </a>
+                                <span style="margin-left: 0;">You and <a @onclick="() => Navigation.NavigateTo(userLike.ProfileUrl, forceLoad: true)">
+                                    <b>@userLike.FullName</b>
+                                    </a> like it
+                                </span>
+                            }
+                            else
+                            {
+                                <a class="like" @onclick="async () => await UnlikePost(_post.Likes.First(x => x.UserId == User.Id).Id)">
+                                    <i class="like icon red"></i>
+                                </a>
+                                <span style="margin-left: 0;">You like it</span>
+                            }
+                        }
+                        <div class="actions" style="display: inline-block;">
+                            <i class="comment icon"></i>
+                            @switch (_post.CommentsCount)
+                            {
+                                case 0:
+                                    <a class="reply" @onclick="() => ShowAddCommentModal(_post)">Comment</a>
+                                    break;
+                                case 1:
+                                    <a class="reply" @onclick="() => ShowAddCommentModal(_post)"> 1 comment</a>
+                                    break;
+                                default:
+                                    <a class="reply" @onclick="() => ShowAddCommentModal(_post)">@_post.CommentsCount comments</a>
+                                    break;
+                            }
+                        </div>
+                    </div>
+                </div>
+            </div>
+            @if (showEditTextPost && postBeingEdited.Id == _post.Id)
+            {
+                <EditTextHarmInput OnShowEditTextPost=@UpdateShowEditTextPostValue
+                                   OnMyFeed=@UpdateMyFeedValue
+                                   PostBeingEdited=@postBeingEdited/>
+            }
+            @if (showEditImagePost && postBeingEdited.Id == _post.Id)
+            {
+                <EditImageHarmInput OnShowEditImagePost=@UpdateShowEditImagePostValue
+                                    OnMyFeed=@UpdateMyFeedValue
+                                    User=@User
+                                    PostBeingEdited=@postBeingEdited/>
+            }
+    }
+    else if (!loaded)
+    {
+        <div class="ui active dimmer">
+            <div class="ui text large loader">Loading</div>
+        </div>
+    }
+    else
+    {
+        <div class="my-container">
+                <div class="my-sub-container p-2 ">
+                    <div style="text-align: center;">
+                        <h3>This post doesn't exist anymore.</h3>
+                    </div>
+                </div>
+            </div>
+    }
+</div>
+<div class="ui modal" id="likes-modal"
+     style=@(postLikes != null ? "top: unset;left: unset;right: unset;bottom: unset;height: unset;display: block !important;align-self: center;width: unset;" : "")>
+    <div class="header">Likes</div>
+    <div class="scrolling content">
+        <div class="ui items" style="max-width: unset;">
+            @if (postLikes != null)
+            {
+                @foreach (var like in postLikes)
+                {
+                    <div class="item">
+                        <a class="ui tiny circular image" @onclick="() => Navigation.NavigateTo(like.User.ProfileUrl, forceLoad: true)">
+                            <img src="@like.User.AvatarSource">
+                        </a>
+                        <div class="middle aligned content">
+                            <div class="header">
+                                <a @onclick="() => Navigation.NavigateTo(like.User.ProfileUrl, forceLoad: true)">@like.User.FullName</a>
+                            </div>
+                        </div>
+                    </div>
+                }
+            }
+        </div>
+    </div>
+    <div class="actions">
+        <div class="ui red cancel button" @onclick="CloseLikesModal">Close</div>
+    </div>
+</div>
+
+<div class="ui modal" id="comments-modal"
+     style=@(postBeingCommented != null ? "top: unset;left: unset;right: unset;bottom: unset;height: unset;display: block !important;align-self: center;" : "")>
+    <div class="header">Comments</div>
+    <div class="scrolling content">
+        <div class="ui comments" style="max-width: unset;">
+            @if (loaded && HarmComments != null)
+            {
+                @if (HarmComments.Count == 0)
+                {
+                    <div class="my-container">
+                        <div class="my-sub-container p-2 ">
+                            <div style="text-align: center;">
+                                <h3>Silence. There are no comments yet...</h3>
+                            </div>
+                        </div>
+                    </div>
+                }
+                @foreach (var comment in HarmComments)
+                {
+                    @if (comment.ParentCommentId == null)
+                    {
+                        <div class="comment ui raised segment"
+                             style="padding: 2%;">
+                            <a class="avatar">
+                                <img src="@comment.Author.AvatarSource">
+                            </a>
+                            <div class="content" style="padding-top: 0;">
+                                <a class="author"
+                                   @onclick="() => Navigation.NavigateTo(comment.Author.ProfileUrl, forceLoad: true)">
+                                    @comment.Author.FullName
+                                </a>
+                                <div class="metadata" style="display: inline;margin-left: 2%;">
+                                    @if (comment.Author.Id == User.Id)
+                                    {
+                                        <HarmDropdown Id=@($"comment-menu-{commentIndex}")
+                                                      User=@User
+                                                      Type=@DropdownType.Comment
+                                                      OnHarmComments=@UpdateHarmCommentsValue
+                                                      OnCommentBeingEdited=@UpdateCommentBeingEditedValue
+                                                      Comment=@comment
+                                                      PostBeingCommented=@postBeingCommented/>
+                                        @IncrementComment()
+                                    }
+                                    @if (comment.EditedAt == null)
+                                    {
+                                        <span class="date" style="display: inline-flex; float: right;margin-top: 0.2em;">@GetDate(comment.PostedAt)</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="date" style="display: inline-flex; float: right;margin-top: 0.2em;">@GetDate(comment.EditedAt.Value)</span>
+                                        <div class="ui yellow circular tiny label" style="margin-right: 2%; display: inline-flex; float: right;">
+                                            Edited
+                                        </div>
+                                    }
+                                </div>
+                                <div class="text">
+                                    @comment.Content
+                                </div>
+                                <div class="actions">
+                                    <div class="reply">
+                                        @RenderLikeSection(comment)
+                                        <a class="reply" @onclick="() => OpenAddReplySection(comment)">
+                                            <i class="reply icon"></i>Reply
+                                        </a>
+                                    </div>
+                                </div>
+                            </div>
+                            @if (comment.Replies.Count > 0)
+                            {
+                                <div class="comments ui segment"
+                                     style="padding: 2%;margin-top: 2%;">
+                                    @foreach (var reply in comment.Replies.OrderBy(c => c.PostedAt))
+                                    {
+                                        <div class="comment">
+                                            <a class="avatar">
+                                                <img src="@reply.Author.AvatarSource">
+                                            </a>
+                                            <div class="content" style="padding-top: 0;">
+                                                <a class="author"
+                                                   @onclick="() => Navigation.NavigateTo(reply.Author.ProfileUrl, forceLoad: true)">
+                                                    @reply.Author.FullName
+                                                </a>
+                                                <div class="metadata" style="display: inline;margin-left: 2%;">
+                                                    @if (reply.Author.Id == User.Id)
+                                                    {
+                                                        <HarmDropdown Id=@($"comment-menu-{commentIndex}")
+                                                                      User=@User
+                                                                      Type=DropdownType.Reply
+                                                                      OnHarmComments=@UpdateHarmCommentsValue
+                                                                      OnReplyBeingEdited=@UpdateReplyBeingEditedValue
+                                                                      Comment=@reply
+                                                                      PostBeingCommented=@postBeingCommented/>
+                                                        @IncrementComment()
+                                                    }
+                                                    @if (reply.EditedAt == null)
+                                                    {
+                                                        <span class="date" style="display: inline-flex; float: right;margin-top: 0.2em;">@GetDate(reply.PostedAt)</span>
+                                                    }
+                                                    else
+                                                    {
+                                                        <span class="date" style="display: inline-flex; float: right;margin-top: 0.2em;">@GetDate(reply.EditedAt.Value)</span>
+                                                        <div class="ui yellow circular tiny label" style="margin-right: 2%; display: inline-flex; float: right;">
+                                                            Edited
+                                                        </div>
+                                                    }
+                                                </div>
+                                                <div class="text">
+                                                    @reply.Content
+                                                </div>
+                                                <div class="actions">
+                                                    <div class="reply">
+                                                        @RenderLikeSection(reply)
+                                                        <a class="reply" @onclick="() => OpenAddReplyToReplySection(reply)">
+                                                            <i class="reply icon"></i>Reply
+                                                        </a>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            @if (reply.Replies.Count > 0)
+                                            {
+                                                <div class="comments">
+                                                    @foreach (var repliedReply in reply.Replies.OrderBy(c => c.PostedAt))
+                                                    {
+                                                        <div class="comment ui segment"
+                                                             style="padding: 2%;margin-top: 2%;">
+                                                            <a class="avatar">
+                                                                <img src="@repliedReply.Author.AvatarSource">
+                                                            </a>
+                                                            <div class="content" style="padding-top: 0;">
+                                                                <a class="author"
+                                                                   @onclick="() => Navigation.NavigateTo(repliedReply.Author.ProfileUrl, forceLoad: true)">
+                                                                    @repliedReply.Author.FullName
+                                                                </a>
+                                                                <div class="metadata" style="display: inline;margin-left: 2%;">
+                                                                    @if (repliedReply.Author.Id == User.Id)
+                                                                    {
+                                                                        <HarmDropdown Id=@($"comment-menu-{commentIndex}")
+                                                                                      User=@User
+                                                                                      Type=DropdownType.ReplyToReply
+                                                                                      OnHarmComments=@UpdateHarmCommentsValue
+                                                                                      OnReplyToReplyBeingEdited=@UpdateReplyToReplyBeingEditedValue
+                                                                                      Comment=@repliedReply
+                                                                                      PostBeingCommented=@postBeingCommented/>
+                                                                        @IncrementComment()
+                                                                    }
+                                                                    @if (repliedReply.EditedAt == null)
+                                                                    {
+                                                                        <span class="date" style="display: inline-flex; float: right;margin-top: 0.2em;">@GetDate(repliedReply.PostedAt)</span>
+                                                                    }
+                                                                    else
+                                                                    {
+                                                                        <span class="date" style="display: inline-flex; float: right;margin-top: 0.2em;">@GetDate(repliedReply.EditedAt.Value)</span>
+                                                                        <div class="ui yellow circular tiny label" style="margin-right: 2%; display: inline-flex; float: right;">
+                                                                            Edited
+                                                                        </div>
+                                                                    }
+                                                                </div>
+                                                                <div class="text">
+                                                                    @repliedReply.Content
+                                                                </div>
+                                                                <div class="actions">
+                                                                    <div class="reply">
+                                                                        @RenderLikeSection(repliedReply)
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                        @if (repliedReply.IsEditReplyToReplySectionEnabled)
+                                                        {
+                                                            <EditCommentInput PostBeingCommented=@postBeingCommented
+                                                                              CommentBeingEdited=@repliedReply
+                                                                              OnHarmComments=@UpdateHarmCommentsValue
+                                                                              OnCommentIndex=@UpdateCommentIndexValue
+                                                                              OnGetDropdownIndexes=@UpdateGetDropdown/>
+                                                        }
+                                                    }
+                                                </div>
+                                            }
+                                            @if (reply.IsReplyToReplySectionEnabled)
+                                            {
+                                                <ReplyInput PostBeingCommented=@postBeingCommented
+                                                            ParentComment=@reply
+                                                            OnHarmComments=@UpdateHarmCommentsValue
+                                                            OnCommentIndex=@UpdateCommentIndexValue
+                                                            OnGetDropdownIndexes=@UpdateGetDropdown/>
+                                            }
+                                            @if (reply.IsEditReplySectionEnabled)
+                                            {
+                                                <EditCommentInput PostBeingCommented=@postBeingCommented
+                                                                  CommentBeingEdited=@reply
+                                                                  OnHarmComments=@UpdateHarmCommentsValue
+                                                                  OnCommentIndex=@UpdateCommentIndexValue
+                                                                  OnGetDropdownIndexes=@UpdateGetDropdown/>
+                                            }
+                                        </div>
+                                    }
+                                </div>
+                            }
+                            @if (comment.IsReplySectionEnabled)
+                            {
+                                <ReplyInput PostBeingCommented=@postBeingCommented
+                                            ParentComment=@comment
+                                            OnHarmComments=@UpdateHarmCommentsValue
+                                            OnCommentIndex=@UpdateCommentIndexValue
+                                            OnGetDropdownIndexes=@UpdateGetDropdown/>
+                            }
+                            @if (comment.IsEditCommentSectionEnabled)
+                            {
+                                <EditCommentInput PostBeingCommented=@postBeingCommented
+                                                  CommentBeingEdited=@comment
+                                                  OnHarmComments=@UpdateHarmCommentsValue
+                                                  OnCommentIndex=@UpdateCommentIndexValue
+                                                  OnGetDropdownIndexes=@UpdateGetDropdown/>
+                            }
+                        </div>
+                    }
+                }
+            }
+            <CommentInput PostBeingCommented=@postBeingCommented
+                          OnHarmComments=@UpdateHarmCommentsValue
+                          OnCommentIndex=@UpdateCommentIndexValue
+                          OnGetDropdownIndexes=@UpdateGetDropdown/>
+        </div>
+        <div class="ui modal" id="comment-likes-modal"
+             style=@(commentLikes != null ? "top: unset;left: unset;right: unset;bottom: unset;height: unset;display: block !important;align-self: center;width: unset;" : "")>
+            <div class="header">Likes</div>
+            <div class="scrolling content">
+                <div class="ui items" style="max-width: unset;">
+                    @if (commentLikes != null)
+                    {
+                        @foreach (var like in commentLikes)
+                        {
+                            <div class="item">
+                                <a class="ui tiny circular image" @onclick="() => Navigation.NavigateTo(like.User.ProfileUrl, forceLoad: true)">
+                                    <img src="@like.User.AvatarSource">
+                                </a>
+                                <div class="middle aligned content">
+                                    <div class="header">
+                                        <a @onclick="() => Navigation.NavigateTo(like.User.ProfileUrl, forceLoad: true)">@like.User.FullName</a>
+                                    </div>
+                                </div>
+                            </div>
+                        }
+                    }
+                </div>
+            </div>
+            <div class="actions">
+                <div class="ui red cancel button" @onclick="CloseCommentLikesModal">Close</div>
+            </div>
+        </div>
+    </div>
+    <div class="actions">
+        <div class="ui red cancel button" @onclick="CloseAddCommentModal">Close</div>
+    </div>
+</div>
+</Authorized>
+<NotAuthorized>
+    <div class="my-container">
+        <div class="my-sub-container p-2 ">
+            <div style="text-align: center;">
+                <h3>Log in, to see this post.</h3>
+            </div>
+        </div>
+    </div>
+</NotAuthorized>
+</AuthorizeView>
+
+@code {
+    [Parameter]
+    public string? Id { get; set; }
+    
+    private bool loaded = false;
+
+    private int index = 0;
+
+    private int commentIndex = 0;
+
+    private bool showTextPost = false;
+
+    private bool showImagePost = false;
+
+    private bool showEditTextPost = false;
+
+    private bool showEditImagePost = false;
+
+    private PostDTO? postBeingEdited = null;
+
+    private PostDTO? postBeingCommented = null;
+
+    private CommentDTO? commentBeingAdded = null;
+
+    private CommentDTO? commentBeingEdited = null;
+
+    private ApplicationUserDTO User { get; set; }
+
+    private ICollection<PostLikeDTO>? postLikes = null;
+    
+    private ICollection<CommentLikeDTO>? commentLikes = null;
+
+    private PostDTO? _post { get; set; }
+
+    private ICollection<CommentDTO>? HarmComments { get; set; }
+
+    private string TextAddReplyAreaValue { get; set; }
+
+    private string TextAddCommentAreaValue { get; set; }
+
+    private string TextEditCommentAreaValue { get; set; }
+
+    [CascadingParameter]
+    private Task<AuthenticationState> AuthenticationStateTask { get; set; }
+
+    [Inject]
+    public IApplicationUserService UserService { get; set; }
+
+    [Inject]
+    public IPostService PostService { get; set; }
+
+    [Inject]
+    public IPostLikeService PostLikeService { get; set; }
+
+    [Inject]
+    public INotificationService NotificationService { get; set; }
+
+    [Inject]
+    public ICommentService CommentService { get; set; }
+
+    [Inject]
+    public ICommentLikeService CommentLikeService { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        var authState = await AuthenticationStateProvider
+            .GetAuthenticationStateAsync();
+
+        if (!Guid.TryParse(Id, out _))
+        {
+            _post = null;
+            loaded = true;
+            return;
+        }
+        if (authState.User.Identity.Name != null)
+        {
+            User = await UserService
+                .GetUserByEmailAsync(authState.User.Identity?.Name);
+
+            if (User != null)
+            {
+                _post = await PostService.GetDTOAsync(Guid.Parse(Id));
+            }
+        }
+        loaded = true;
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender)
+        {
+            for (int i = 0; i < index; i++)
+                await JsRuntime
+                    .InvokeVoidAsync("dropdown", $"#harm-menu-{i}");
+        }
+    }
+
+    private void UpdateShowTextPostValue(bool value) => showTextPost = value;
+
+    private void UpdateShowImagePostValue(bool value) => showImagePost = value;
+
+    private void UpdateShowEditTextPostValue(bool value) => showEditTextPost = value;
+
+    private void UpdateShowEditImagePostValue(bool value) => showEditImagePost = value;
+
+    private void UpdatePostBeingEditedValue(PostDTO value) => postBeingEdited = value;
+
+    private void UpdateCommentBeingEditedValue(CommentDTO value)
+    {
+        if (commentBeingEdited != null)
+        {
+            commentBeingEdited.IsEditCommentSectionEnabled = false;
+            commentBeingEdited.IsEditReplySectionEnabled = false;
+            commentBeingEdited.IsEditReplyToReplySectionEnabled = false;
+        }
+
+        commentBeingEdited = HarmComments!.First(x => x.Id == value.Id);
+        commentBeingEdited.IsEditCommentSectionEnabled = true;
+        TextEditCommentAreaValue = commentBeingEdited.Content;
+
+        StateHasChanged();
+    }
+
+    private void UpdateReplyBeingEditedValue(CommentDTO value)
+    {
+        if (commentBeingEdited != null)
+        {
+            commentBeingEdited.IsEditCommentSectionEnabled = false;
+            commentBeingEdited.IsEditReplySectionEnabled = false;
+            commentBeingEdited.IsEditReplyToReplySectionEnabled = false;
+        }
+
+        commentBeingEdited = HarmComments!
+            .First(x => x.Replies.Contains(value))
+            .Replies
+            .First(x => x.Id == value.Id);
+
+        commentBeingEdited.IsEditReplySectionEnabled = true;
+        TextEditCommentAreaValue = commentBeingEdited.Content;
+
+        StateHasChanged();
+    }
+
+    private void UpdateReplyToReplyBeingEditedValue(CommentDTO value)
+    {
+        if (commentBeingEdited != null)
+        {
+            commentBeingEdited.IsEditCommentSectionEnabled = false;
+            commentBeingEdited.IsEditReplySectionEnabled = false;
+            commentBeingEdited.IsEditReplyToReplySectionEnabled = false;
+        }
+
+        commentBeingEdited = HarmComments!
+            .First(x => x.Replies
+                .Any(y => y.Replies.Contains(value)))
+            .Replies
+            .First(y => y.Replies.Contains(value))
+            .Replies
+            .First(x => x.Id == value.Id);
+
+        commentBeingEdited.IsEditReplyToReplySectionEnabled = true;
+        TextEditCommentAreaValue = commentBeingEdited.Content;
+
+        StateHasChanged();
+    }
+
+    private void UpdateMyFeedValue(ICollection<PostDTO> value)
+    {
+        StateHasChanged();
+    }
+
+    private void UpdateHarmCommentsValue(ICollection<CommentDTO> value)
+    {
+        HarmComments = value;
+        StateHasChanged();
+    }
+
+    private async void UpdateGetDropdown(bool value)
+    {
+        if (value)
+        {
+    // Make sure that every dropdownId will be updated on DOM
+            await Task.Delay(500);
+
+            var indexes = await JsRuntime
+                .InvokeAsync<int[]>("getDropdownIndexes");
+
+            foreach (var i in indexes)
+                await JsRuntime
+                    .InvokeVoidAsync("dropdown", $"#comment-menu-{i}");
+        }
+    }
+
+    private void UpdateCommentIndexValue(int value) => commentIndex = value;
+
+    private async void OpenAddReplySection(CommentDTO comment)
+    {
+        if (commentBeingAdded != null)
+        {
+            commentBeingAdded.IsReplyToReplySectionEnabled = false;
+            commentBeingAdded.IsReplySectionEnabled = false;
+            await JsRuntime.InvokeVoidAsync("hideCommentDimmer");
+        }
+
+        commentBeingAdded = HarmComments.First(x => x.Id == comment.Id);
+        commentBeingAdded.IsReplySectionEnabled = true;
+
+        StateHasChanged();
+    }
+
+    private async void OpenAddReplyToReplySection(CommentDTO reply)
+    {
+        if (commentBeingAdded != null)
+        {
+            commentBeingAdded.IsReplyToReplySectionEnabled = false;
+            commentBeingAdded.IsReplySectionEnabled = false;
+            await JsRuntime.InvokeVoidAsync("hideCommentDimmer");
+        }
+
+        commentBeingAdded = HarmComments
+            .First(x => x.Replies.Contains(reply))
+            .Replies
+            .First(x => x.Id == reply.Id);
+        commentBeingAdded.IsReplyToReplySectionEnabled = true;
+
+        StateHasChanged();
+    }
+
+    private object? Increment()
+    {
+        index++;
+        return null;
+    }
+
+    private object? IncrementComment()
+    {
+        commentIndex++;
+        return null;
+    }
+
+    //TODO move to shared file
+    private async Task LikePost(Guid postId, string postOwnerId)
+    {
+        var body = new
+        {
+            Id = Guid.NewGuid(),
+            PostId = postId,
+            UserId = User.Id
+        };
+
+        var entity = await PostLikeService.CreateAsync(body);
+
+        if (entity == null)
+            await JsRuntime.InvokeVoidAsync(
+                "errorToast",
+                "Something went wrong, we couldn't like this post.");
+        else
+        {
+            if (postOwnerId != User.Id)
+            {
+                var notificationBody = new
+                {
+                    Type = NotificationType.PostLike,
+                    Description = $"{User.FullName} liked your post.",
+                    MarkedAsSeen = false,
+                    ReceivedAt = DateTime.Now,
+                    ReferenceUrl = $"/Post/{postId}",
+                    UserId = postOwnerId
+                };
+
+                await NotificationService.CreateAsync(notificationBody);
+            }
+
+            Navigation.NavigateTo("/", forceLoad: true);
+        }
+    }
+
+    private async Task UnlikePost(Guid postLikeId)
+    {
+        var wasRemoved = await PostLikeService.DeletePostLikeAsync(postLikeId);
+
+        if (!wasRemoved)
+            await JsRuntime.InvokeVoidAsync(
+                "errorToast",
+                "Something went wrong, we couldn't unlike this post.");
+        else
+        {
+            Navigation.NavigateTo("/", forceLoad: true);
+        }
+    }
+
+    private async Task LikeComment(CommentDTO comment, string commentOwnerId)
+    {
+        var body = new
+        {
+            Id = Guid.NewGuid(),
+            CommentId = comment.Id,
+            UserId = User.Id
+        };
+
+        var entity = await CommentLikeService.CreateAsync(body);
+
+        if (entity == null)
+            await JsRuntime.InvokeVoidAsync(
+                "errorToast",
+                "Something went wrong, we couldn't like this comment.");
+        else
+        {
+            if (commentOwnerId != User.Id)
+            {
+                var notificationBody = new
+                {
+                    Type = NotificationType.CommentLike,
+                    Description = $"{User.FullName} liked your comment.",
+                    MarkedAsSeen = false,
+                    ReceivedAt = DateTime.Now,
+                    ReferenceUrl = $"/Post/{postBeingCommented!.Id}",
+                    UserId = postBeingCommented!.Author.Id
+                };
+
+                await NotificationService.CreateAsync(notificationBody);
+            }
+
+            Navigation.NavigateTo("/", forceLoad: true);
+        }
+    }
+
+    private async Task UnlikeComment(Guid commentLikeId)
+    {
+        var wasRemoved = await CommentLikeService.DeleteAsync(commentLikeId);
+
+        if (!wasRemoved)
+            await JsRuntime.InvokeVoidAsync(
+                "errorToast",
+                "Something went wrong, we couldn't unlike this comment.");
+        else
+        {
+            Navigation.NavigateTo("/", forceLoad: true);
+        }
+    }
+
+    private async void ShowAddCommentModal(PostDTO post)
+    {
+        HarmComments = await CommentService.GetPostCommentsAsync(post.Id);
+        postBeingCommented = post;
+        StateHasChanged();
+        await JsRuntime.InvokeVoidAsync("openCommentsModal");
+        for (int i = 0; i < commentIndex; i++)
+            await JsRuntime
+                .InvokeVoidAsync("dropdown", $"#comment-menu-{i}");
+    }
+
+    private async void ShowPostLikesModal(PostDTO post)
+    {
+        postLikes = post.Likes;
+        StateHasChanged();
+        await JsRuntime.InvokeVoidAsync("openLikesModal");
+    }
+    
+    private async void ShowCommentLikesModal(CommentDTO comment)
+    {
+        commentLikes = await CommentLikeService.GetLikesAsync(comment.Id);
+        StateHasChanged();
+        await JsRuntime.InvokeVoidAsync("openCommentLikesModal");
+    }
+
+    private async void CloseAddCommentModal()
+    {
+        HarmComments = Array.Empty<CommentDTO>();
+        TextAddCommentAreaValue = "";
+        TextAddReplyAreaValue = "";
+        commentIndex = 0;
+        await JsRuntime.InvokeVoidAsync("hideCommentDimmer");
+        StateHasChanged();
+        postBeingCommented = null;
+    }
+
+    private void CloseLikesModal()
+    {
+        postLikes = null;
+        StateHasChanged();
+    }
+    
+    private async void CloseCommentLikesModal()
+    {
+        commentLikes = null;
+        await JsRuntime.InvokeVoidAsync("openCommentsModal");
+        StateHasChanged();
+    }
+
+    private RenderFragment RenderLikeSection(CommentDTO comment)
+    {
+        @if (comment.Likes.Count == 0)
+        {
+            return @<a class="like" @onclick="async () => await LikeComment(comment, comment.Author.Id)">
+                       <i class="like icon"></i>Be the first person to like this comment
+                   </a>;
+        }
+        if (comment.Likes.Count == 1 && comment.Likes.All(x => x.UserId != User.Id))
+        {
+            var userLike = comment.Likes.First().User;
+            return @<text>
+                       <a style="margin: 0;" class="like" @onclick="async () => await LikeComment(comment, comment.Author.Id)">
+                           <i class="like icon"></i>
+                       </a><span style="margin-right: 0.75em;"><a @onclick="() => Navigation.NavigateTo(userLike.ProfileUrl, forceLoad: true)"><b>@userLike.FullName</b></a> likes it</span>
+                    </text>;
+        }
+        if (comment.Likes.Count > 1 && comment.Likes.All(x => x.UserId != User.Id))
+        {
+            return @<text>
+                       <a style="margin: 0;" class="like" @onclick="async () => await LikeComment(comment, comment.Author.Id)">
+                           <i class="like icon"></i>
+                       </a><span style="margin-right: 0.75em;"><a @onclick="() => ShowCommentLikesModal(comment)"><b>@comment.Likes.Count likes</b></a></span>
+                    </text>;
+        }
+        if (comment.Likes.Count > 2)
+        {
+            var count = comment.Likes.Count - 1;
+            return @<text>
+                       <a style="margin: 0;" class="like" @onclick="async () => await UnlikeComment(comment.Likes.First(x => x.UserId == User.Id).Id)">
+                           <i class="like icon red"></i>
+                       </a><span style="margin-right: 0.75em;">You and <a @onclick="() => ShowCommentLikesModal(comment)"><b>@count other people</b></a> like it</span>
+                    </text>;
+        }
+        if (comment.Likes.Count == 2)
+        {
+            var userLike = comment.Likes.First(x => x.UserId != User.Id).User;
+            return @<text>
+                       <a style="margin: 0;" class="like" @onclick="async () => await UnlikeComment(comment.Likes.First(x => x.UserId == User.Id).Id)">
+                           <i class="like icon red"></i>
+                       </a><span style="margin-right: 0.75em;">You and <a @onclick="() => Navigation.NavigateTo(userLike.ProfileUrl, forceLoad: true)"><b>@userLike.FullName</b></a> like it</span>
+                    </text>;
+        }
+        return @<text>
+                   <a style="margin: 0;" class="like" @onclick="async () => await UnlikeComment(comment.Likes.First(x => x.UserId == User.Id).Id)">
+                       <i class="like icon red"></i>
+                   </a><span style="margin-right: 0.75em;">You like it</span>
+                </text>;
+    }
+
+    public static string GetDate(DateTime value)
+    {
+        var ts = DateTime.Now.Subtract(value);
+
+        if (ts.TotalMinutes < 1)
+        {
+            return "Just now";
+        }
+        if (ts.TotalMinutes < 2)
+        {
+            return "1 minute ago";
+        }
+        if (ts.TotalHours < 1)
+        {
+            return $"{ts.Minutes} minutes ago";
+        }
+        if (ts.TotalHours < 2)
+        {
+            return "1 hour ago";
+        }
+        if (ts.TotalDays < 1)
+        {
+            return $"{ts.Hours} hours ago";
+        }
+        if (ts.TotalDays is >= 1 and < 2)
+        {
+            return "1 day ago";
+        }
+        if (ts.TotalDays is >= 2 and < 3)
+        {
+            return "2 days ago";
+        }
+
+        return value.ToString("dd/MM/yyyy");
+    }
+}

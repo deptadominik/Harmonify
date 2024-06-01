@@ -29,6 +29,22 @@ public class PostService : IPostService
 
         return post;
     }
+    
+    public async Task<PostDTO?> GetDTOAsync(Guid postId)
+    {
+        var response = await httpClient
+            .GetAsync($"Post/dto?id={postId}");
+
+        if (response.StatusCode == HttpStatusCode.NoContent)
+            return null;
+
+        var content = await response.Content.ReadAsStringAsync();
+
+        var post = JsonSerializer.Deserialize<PostDTO>(content,
+            new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+
+        return post;
+    }
 
     public async Task<ICollection<PostDTO>> GetMyFeedAsync(string userId)
     {
